@@ -6,8 +6,6 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
     gmsh.clear()
     gmsh.model.add("geometry")
-    # Save all elements, even if they don’t belong to physical groups
-    gmsh.option.setNumber("Mesh.SaveAll", 1)
     
     # low and high points of x2, y2 and z2
     x2l = 0.5*x1 - 0.5*x2
@@ -104,15 +102,19 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     #   positive, or a new tag if `tag` < 0. Set the name of the physical group if
     #   `name` is not empty.
 
-    gmsh.model.addPhysicalGroup(1, [11,13], 1)
-    gmsh.model.setPhysicalName(1, 1, "DirichletEdges")
-    gmsh.model.addPhysicalGroup(3, [11], 3)
-    gmsh.model.setPhysicalName(3, 3, "FreeVolumeOutside")
-    gmsh.model.addPhysicalGroup(3, [21], 4)
-    gmsh.model.setPhysicalName(3, 4, "FreeVolumeInside")
+    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212], 11)
+    gmsh.model.setPhysicalName(1, 11, "FreeEdges")
+    gmsh.model.addPhysicalGroup(1, [11,13], 12)
+    gmsh.model.setPhysicalName(1, 12, "DirichletEdges")
+    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26], 2)
+    gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+    gmsh.model.addPhysicalGroup(3, [11], 31)
+    gmsh.model.setPhysicalName(3, 31, "FreeVolumeOutside")
+    gmsh.model.addPhysicalGroup(3, [21], 32)
+    gmsh.model.setPhysicalName(3, 32, "FreeVolumeInside")
     gmsh.model.geo.synchronize()
-    # We can then generate a 2D mesh...
-    gmsh.model.mesh.generate(2)
+    # We can then generate a 3D mesh...
+    gmsh.model.mesh.generate(3)
     # ... and save it to disk
     gmsh.write("geometry.msh")
     gmsh.finalize()

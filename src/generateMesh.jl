@@ -1,6 +1,8 @@
 using Gmsh
 import Gmsh: gmsh
-function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
+# 1 = aluminium frame, 2 = glass, 3 = rubber
+# (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from z1 to z2)
+function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
@@ -14,6 +16,13 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     y2h = 0.5*y1 + 0.5*y2
     z2l = 0.5*z1 - 0.5*z2
     z2h = 0.5*z1 + 0.5*z2
+
+    x3l = 0.5*x1 - 0.5*x2 - x3
+    x3h = 0.5*x1 + 0.5*x2 + x3
+    y3l = 0.5*y1 - 0.5*y2 - y3
+    y3h = 0.5*y1 + 0.5*y2 + y3
+    z3l = 0
+    z3h = z1
 
     # Tags: 1st digit = which physical group (aluminium = 1, glass = 2)
     # Add points
@@ -34,6 +43,16 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     gmsh.model.geo.addPoint(x2l,   y2h,   z2h, meshSize, 26)
     gmsh.model.geo.addPoint(x2h,   y2h,   z2h, meshSize, 27)
     gmsh.model.geo.addPoint(x2h,   y2l,   z2h, meshSize, 28)
+
+    gmsh.model.geo.addPoint(x3l,   y3l,   z3l, meshSize, 31)
+    gmsh.model.geo.addPoint(x3l,   y3h,   z3l, meshSize, 32)
+    gmsh.model.geo.addPoint(x3h,   y3h,   z3l, meshSize, 33)
+    gmsh.model.geo.addPoint(x3h,   y3l,   z3l, meshSize, 34)
+    gmsh.model.geo.addPoint(x3l,   y3l,   z3h, meshSize, 35)
+    gmsh.model.geo.addPoint(x3l,   y3h,   z3h, meshSize, 36)
+    gmsh.model.geo.addPoint(x3h,   y3h,   z3h, meshSize, 37)
+    gmsh.model.geo.addPoint(x3h,   y3l,   z3h, meshSize, 38)
+    
     # Add lines
     gmsh.model.geo.addLine( 11,  12,  11)
     gmsh.model.geo.addLine( 12,  13,  12)
@@ -60,6 +79,30 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     gmsh.model.geo.addLine( 26,  22,  210)
     gmsh.model.geo.addLine( 27,  23,  211)
     gmsh.model.geo.addLine( 28,  24,  212)
+
+    gmsh.model.geo.addLine( 31,  32,  31)
+    gmsh.model.geo.addLine( 32,  33,  32)
+    gmsh.model.geo.addLine( 33,  34,  33)
+    gmsh.model.geo.addLine( 31,  34,  34)
+    gmsh.model.geo.addLine( 35,  36,  35)
+    gmsh.model.geo.addLine( 36,  37,  36)
+    gmsh.model.geo.addLine( 37,  38,  37)
+    gmsh.model.geo.addLine( 35,  38,  38)
+    gmsh.model.geo.addLine( 35,  31,  39)
+    gmsh.model.geo.addLine( 36,  32,  310)
+    gmsh.model.geo.addLine( 37,  33,  311)
+    gmsh.model.geo.addLine( 38,  34,  312)
+
+    # funnel lines
+    gmsh.model.geo.addLine( 31,  21,  41)
+    gmsh.model.geo.addLine( 32,  22,  42)
+    gmsh.model.geo.addLine( 33,  23,  43)
+    gmsh.model.geo.addLine( 34,  24,  44)
+    gmsh.model.geo.addLine( 35,  25,  45)
+    gmsh.model.geo.addLine( 36,  26,  46)
+    gmsh.model.geo.addLine( 37,  27,  47)
+    gmsh.model.geo.addLine( 38,  28,  48)
+
     # Construct curve loops and surfaces    (watch out for line direction)
     gmsh.model.geo.addCurveLoop([11, 12, 13, -14], 11)
     gmsh.model.geo.addCurveLoop([15, 16, 17, -18], 12)
@@ -74,8 +117,31 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     gmsh.model.geo.addCurveLoop([-24, -29, 28, 212], 25)
     gmsh.model.geo.addCurveLoop([211, -22, -210, 26], 26)
 
-    gmsh.model.geo.addPlaneSurface([11, 21], 11)   #loop 1 with hole loop 2
-    gmsh.model.geo.addPlaneSurface([12, 22], 12)
+    gmsh.model.geo.addCurveLoop([31, -310, -35, 39], 31)
+    gmsh.model.geo.addCurveLoop([311, -32, -310, 36], 32)
+    gmsh.model.geo.addCurveLoop([-33, -311, 37, 312], 33)
+    gmsh.model.geo.addCurveLoop([-34, -39, 38, 312], 34)
+    gmsh.model.geo.addCurveLoop([46, -25, -45, 35], 35)
+    gmsh.model.geo.addCurveLoop([47, -26, -46, 36], 36)
+    gmsh.model.geo.addCurveLoop([48, -27, -47, 37], 37)
+    gmsh.model.geo.addCurveLoop([45, 28, -48, -38], 38)
+    gmsh.model.geo.addCurveLoop([42, -21, -41, 31], 39)
+    gmsh.model.geo.addCurveLoop([43, -22, -42, 32], 310)
+    gmsh.model.geo.addCurveLoop([44, -23, -43, 33], 311)
+    gmsh.model.geo.addCurveLoop([41, 24, -44, -34], 312)
+    gmsh.model.geo.addCurveLoop([46, 210, -42, -310], 313)
+    gmsh.model.geo.addCurveLoop([47, 211, -43, -311], 314)
+    gmsh.model.geo.addCurveLoop([48, 212, -44, -312], 315)
+    gmsh.model.geo.addCurveLoop([45, 29, -41, -39], 316)
+
+    # loops for the holes in aluminium frame
+    gmsh.model.geo.addCurveLoop([31, 32, 33, -34], 317)
+    gmsh.model.geo.addCurveLoop([35, 36, 37, -38], 318)
+
+
+
+    gmsh.model.geo.addPlaneSurface([11, 317], 11)   #loop with hole loop inside
+    gmsh.model.geo.addPlaneSurface([12, 318], 12)
     gmsh.model.geo.addPlaneSurface([13], 13)
     gmsh.model.geo.addPlaneSurface([14], 14)
     gmsh.model.geo.addPlaneSurface([15], 15)
@@ -86,14 +152,41 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     gmsh.model.geo.addPlaneSurface([24], 24)    
     gmsh.model.geo.addPlaneSurface([25], 25)    
     gmsh.model.geo.addPlaneSurface([26], 26)
+    gmsh.model.geo.addPlaneSurface([31], 31)
+    gmsh.model.geo.addPlaneSurface([32], 32)    
+    gmsh.model.geo.addPlaneSurface([33], 33)    
+    gmsh.model.geo.addPlaneSurface([34], 34)    
+    gmsh.model.geo.addPlaneSurface([35], 35)    
+    gmsh.model.geo.addPlaneSurface([36], 36)
+    gmsh.model.geo.addPlaneSurface([37], 37)
+    gmsh.model.geo.addPlaneSurface([38], 38)
+    gmsh.model.geo.addPlaneSurface([39], 39)
+    gmsh.model.geo.addPlaneSurface([310], 310)
+    gmsh.model.geo.addPlaneSurface([311], 311)
+    gmsh.model.geo.addPlaneSurface([312], 312)
+    gmsh.model.geo.addPlaneSurface([313], 313)
+    gmsh.model.geo.addPlaneSurface([314], 314)
+    gmsh.model.geo.addPlaneSurface([315], 315)
+    gmsh.model.geo.addPlaneSurface([316], 316)
 
+    # outer volume aluminium
     gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
-    gmsh.model.geo.addSurfaceLoop([23, 24, 25, 26], 12)     #only remove the sides, already a hole in surface 11, 12
-
-    gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
+    gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
     gmsh.model.geo.addVolume([11, 12], 11)
+    
+    # inner volume glass
+    gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
     gmsh.model.geo.addVolume([21], 21)
 
+    # volume rubber
+    gmsh.model.geo.addSurfaceLoop([31, 35, 39, 23, 313, 316], 31)
+    gmsh.model.geo.addVolume([31], 31)
+    gmsh.model.geo.addSurfaceLoop([32, 36, 310, 26, 313, 314], 32)
+    gmsh.model.geo.addVolume([32], 32)
+    gmsh.model.geo.addSurfaceLoop([33, 37, 311, 24, 314, 315], 33)
+    gmsh.model.geo.addVolume([33], 33)
+    gmsh.model.geo.addSurfaceLoop([34, 38, 312, 25, 315, 316], 34)
+    gmsh.model.geo.addVolume([34], 34)
 
     # Physical groups
     # def: addPhysicalGroup(dim, tags, tag = -1, name = "")
@@ -102,16 +195,18 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, meshSize)
     #   positive, or a new tag if `tag` < 0. Set the name of the physical group if
     #   `name` is not empty.
 
-    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212], 11)
+    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
     gmsh.model.addPhysicalGroup(1, [11,13], 12)
     gmsh.model.setPhysicalName(1, 12, "DirichletEdges")
-    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26], 2)
+    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
     gmsh.model.setPhysicalName(2, 2, "FreeAreas")
     gmsh.model.addPhysicalGroup(3, [11], 31)
-    gmsh.model.setPhysicalName(3, 31, "FreeVolumeOutside")
+    gmsh.model.setPhysicalName(3, 31, "Aluminium")
     gmsh.model.addPhysicalGroup(3, [21], 32)
-    gmsh.model.setPhysicalName(3, 32, "FreeVolumeInside")
+    gmsh.model.setPhysicalName(3, 32, "Glass")
+    gmsh.model.addPhysicalGroup(3, [31, 32, 33, 34], 33)
+    gmsh.model.setPhysicalName(3, 33, "Rubber")
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
     gmsh.model.mesh.generate(3)
@@ -125,5 +220,7 @@ y1 = 1.93
 z1 = 0.5
 x2 = x1*0.5
 y2 = y1*0.5
-z2 = z1
-MeshGenerator(x1, y1, z1, x2, y2, z2, 0.1)
+z2 = z1*0.5
+x3 = 0.1
+y3 = 0.1
+MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, 0.1)

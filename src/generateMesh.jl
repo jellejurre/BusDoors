@@ -2,7 +2,7 @@ using Gmsh
 import Gmsh: gmsh
 # 1 = aluminium frame, 2 = glass, 3 = rubber
 # (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from z1 to z2)
-function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, meshSize)
+function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
@@ -14,8 +14,8 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, meshSize)
     x2h = 0.5*x1 + 0.5*x2
     y2l = 0.5*y1 - 0.5*y2
     y2h = 0.5*y1 + 0.5*y2
-    z2l = 0.5*z1 - 0.5*z2
-    z2h = 0.5*z1 + 0.5*z2
+    z2l = 0.5*z1 - 0.5*z2 - z2offset
+    z2h = 0.5*z1 + 0.5*z2 - z2offset
 
     x3l = 0.5*x1 - 0.5*x2 - x3
     x3h = 0.5*x1 + 0.5*x2 + x3
@@ -215,12 +215,13 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, meshSize)
     gmsh.finalize()
 end
 
-x1 = 0.69
-y1 = 1.93
-z1 = 0.5
-x2 = x1*0.5
-y2 = y1*0.5
-z2 = z1*0.5
-x3 = 0.1
-y3 = 0.1
-MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, 0.1)
+x1 = 0.6610
+y1 = 2.02366
+z1 = 0.0323
+x2 = 0.4855
+y2 = 1.764
+z2 = 0.0023
+z2offset = z1*0.5
+x3 = 0.001531
+y3 = 0.005081
+MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, 0.01)

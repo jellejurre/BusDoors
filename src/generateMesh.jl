@@ -188,6 +188,35 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.geo.addSurfaceLoop([34, 38, 312, 25, 315, 316], 34)
     gmsh.model.geo.addVolume([34], 34)
 
+    # cylinder (top left)
+    xcyl1 = x1-0.04107
+    ycyl1 = y1-0.091677
+    zcyl1 = 0
+    cylheight = -0.05
+    r = 0.015458
+    gmsh.model.geo.addPoint(xcyl1,   ycyl1,   zcyl1, meshSize, 1000)
+    gmsh.model.geo.addPoint(xcyl1 + r,   ycyl1,   zcyl1, meshSize, 1001)
+    gmsh.model.geo.addPoint(xcyl1,   ycyl1 - r,   zcyl1, meshSize, 1002)
+    gmsh.model.geo.addPoint(xcyl1 - r,   ycyl1,   zcyl1, meshSize, 1003)
+    gmsh.model.geo.addPoint(xcyl1,   ycyl1 + r,   zcyl1, meshSize, 1004)
+    # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
+    gmsh.model.geo.addCircleArc(1001, 1000, 1002, 1000)
+    gmsh.model.geo.addCircleArc(1002, 1000, 1003, 1001)
+    gmsh.model.geo.addCircleArc(1003, 1000, 1004, 1002)
+    gmsh.model.geo.addCircleArc(1004, 1000, 1001, 1003)
+    gmsh.model.geo.addCurveLoop([1000, 1001, 1002, 1003], 1000)
+    gmsh.model.geo.addPlaneSurface([1000], 1000)
+    # extrude returns array of pairs (dim, tag) for volumes
+    cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight)
+    println("cyltags")
+    println(cyltags)
+    # filter away 2d planes, keeping 3d volumes
+    cyltags = filter(tuple -> tuple[1] == 3, cyltags)
+    cyltags = map(tuple -> tuple[2], cyltags)
+    println("cyltags")
+    println(cyltags)
+
+
     # Physical groups
     # def: addPhysicalGroup(dim, tags, tag = -1, name = "")
     #   Add a physical group of dimension `dim`, grouping the model entities with tags
@@ -195,11 +224,11 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     #   positive, or a new tag if `tag` < 0. Set the name of the physical group if
     #   `name` is not empty.
 
-    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312], 11)
+    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
     gmsh.model.addPhysicalGroup(1, [11,13], 12)
     gmsh.model.setPhysicalName(1, 12, "DirichletEdges")
-    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316, 1000], 2)
     gmsh.model.setPhysicalName(2, 2, "FreeAreas")
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Aluminium")
@@ -207,6 +236,8 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.setPhysicalName(3, 32, "Glass")
     gmsh.model.addPhysicalGroup(3, [31, 32, 33, 34], 33)
     gmsh.model.setPhysicalName(3, 33, "Rubber")
+    gmsh.model.addPhysicalGroup(3, cyltags, 1000)
+    gmsh.model.setPhysicalName(3, 1000, "Hinges")
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
     gmsh.model.mesh.generate(3)

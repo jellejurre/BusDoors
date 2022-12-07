@@ -25,7 +25,8 @@ n = MPI.Comm_size(comm)
             a(u,v) = ∫( ∇(v)⋅∇(u) )dΩ
             l(v) = ∫( v*f )dΩ
             op = AffineFEOperator(a,l,U,V)
-            uh = solve(op)
+            solver = PETScLinearSolver()
+            uh = solve(solver, op)
             writevtk(Ω,"results",cellfields=["uh"=>uh,"grad_uh"=>∇(uh)])
         end
     end

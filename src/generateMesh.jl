@@ -208,13 +208,14 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.geo.addPlaneSurface([1000], 1000)
     # extrude returns array of pairs (dim, tag) for volumes
     cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight)
-    println("cyltags")
-    println(cyltags)
+    # println("cyltags")
+    # println(cyltags)
     # filter away 2d planes, keeping 3d volumes
+    cyl_ceilingtag = cyltags[1][2]
     cyltags = filter(tuple -> tuple[1] == 3, cyltags)
     cyltags = map(tuple -> tuple[2], cyltags)
-    println("cyltags")
-    println(cyltags)
+    # println("cyltags")
+    # println(cyltags)
 
 
     # Physical groups
@@ -238,6 +239,8 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.setPhysicalName(3, 33, "Rubber")
     gmsh.model.addPhysicalGroup(3, cyltags, 1000)
     gmsh.model.setPhysicalName(3, 1000, "Hinges")
+    gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag], 1234)
+    gmsh.model.setPhysicalName(2, 1234, "cylceiling")
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
     gmsh.model.mesh.generate(3)

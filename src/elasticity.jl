@@ -1,5 +1,6 @@
 using Gridap
 using GridapGmsh
+import LinearAlgebra: norm
 model = GmshDiscreteModel("./geometry.msh")
 
 # order = 1
@@ -31,6 +32,7 @@ labels = get_face_labeling(model)
 dimension = 3
 tags = get_face_tag(labels,dimension)
 const glass_tag = get_tag_from_name(labels,"Glass")
+const aluminium_tag = get_tag_from_name(labels,"Aluminium")
 
 order = 1
 
@@ -43,8 +45,8 @@ reffe = ReferenceFE(lagrangian,VectorValue{3,Float64},order)
 V0 = TestFESpace(model,reffe;
   conformity=:H1
   )
-g1(x) = VectorValue(0.005,0.0,0.0)
-g2(x) = VectorValue(0.0,0.0,0.0)
+# g1(x) = VectorValue(0.005,0.0,0.0)
+# g2(x) = VectorValue(0.0,0.0,0.0)
 # U = TrialFESpace(V0,[g1,g2])
 U = TrialFESpace(V0)
 
@@ -70,16 +72,30 @@ function σ_bimat(ε,tag)
   end
 end
 
+sources = [(10, 1, VectorValue(0.6,1,0))]
+
+function get_force(x, tag)
+  # if (tag != aluminium_tag)
+  #   return 0
+  # end
+  sum_forces = 0
+  for source in sources
+    val = source[1] * ℯ^(-(0.1 + source[2] * norm(source[3] - x)))
+    sum_forces += val
+  end
+  return sum_forces
+end
+
 σ(ε) = λ*tr(ε)*one(ε) + 2*μ*ε
 degree = 2*order
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
+
+Γ = BoundaryTriangulation(model)
+dΓ = Measure(Γ,degree)
+
 a(u,v) = ∫( ε(v) ⊙ (σ_bimat∘(ε(u),tags)) )*dΩ
-# l(v) = 0
-function l(v)
-  display(typeof(v.cell_basis[1].values))
-  return 0
-end
+l(v) = ∫( get_force∘(v, tags) )*dΓ
 
 op = AffineFEOperator(a,l,U,V0)
 uh = solve(op)

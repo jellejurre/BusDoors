@@ -192,7 +192,7 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     xcyl1 = x1-0.04107
     ycyl1 = y1-0.091677
     zcyl1 = 0
-    cylheight = -0.05
+    cylheight1 = -0.05  # -, since it pokes out to negative z
     r = 0.015458
     gmsh.model.geo.addPoint(xcyl1,   ycyl1,   zcyl1, meshSize, 1000)
     gmsh.model.geo.addPoint(xcyl1 + r,   ycyl1,   zcyl1, meshSize, 1001)
@@ -207,15 +207,39 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.geo.addCurveLoop([1000, 1001, 1002, 1003], 1000)
     gmsh.model.geo.addPlaneSurface([1000], 1000)
     # extrude returns array of pairs (dim, tag) for volumes
-    cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight)
-    # println("cyltags")
-    # println(cyltags)
+    cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight1)
     # filter away 2d planes, keeping 3d volumes
     cyl_ceilingtag = cyltags[1][2]
     cyltags = filter(tuple -> tuple[1] == 3, cyltags)
     cyltags = map(tuple -> tuple[2], cyltags)
-    # println("cyltags")
-    # println(cyltags)
+
+    # hinge box (bottom right)
+    # dimensions box:
+    xbox1 = 0.05
+    ybox1 = 0.05
+
+    # locations points:
+    xbox1l = 0.05
+    ybox1l = 0.05
+    zbox1 = 0
+    boxheight1 = -0.05 # -, since it pokes out to negative z
+    gmsh.model.geo.addPoint(xbox1l,   ybox1l,   zbox1, meshSize, 1100)
+    gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l,   zbox1, meshSize, 1101)
+    gmsh.model.geo.addPoint(xbox1l,   ybox1l + ybox1,   zbox1, meshSize, 1102)
+    gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l + ybox1,   zbox1, meshSize, 1103)
+
+    gmsh.model.geo.addLine( 1100,  1101,  1100)
+    gmsh.model.geo.addLine( 1101,  1103,  1101)
+    gmsh.model.geo.addLine( 1103,  1102,  1102)
+    gmsh.model.geo.addLine( 1102,  1100,  1103)
+    gmsh.model.geo.addCurveLoop([1100, 1101, 1102, 1103], 1100)
+    gmsh.model.geo.addPlaneSurface([1100], 1100)
+    # extrude returns array of pairs (dim, tag) for volumes
+    boxtags = gmsh.model.geo.extrude([(2, 1100)], 0, 0, boxheight1)
+    # filter away 2d planes, keeping 3d volumes
+    box_ceilingtag = boxtags[1][2]
+    boxtags = filter(tuple -> tuple[1] == 3, boxtags)
+    boxtags = map(tuple -> tuple[2], boxtags)
 
 
     # Physical groups
@@ -237,10 +261,10 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.setPhysicalName(3, 32, "Glass")
     gmsh.model.addPhysicalGroup(3, [31, 32, 33, 34], 33)
     gmsh.model.setPhysicalName(3, 33, "Rubber")
-    gmsh.model.addPhysicalGroup(3, cyltags, 1000)
+    gmsh.model.addPhysicalGroup(3, append!(cyltags, boxtags), 1000)
     gmsh.model.setPhysicalName(3, 1000, "Hinges")
-    gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag], 1234)
-    gmsh.model.setPhysicalName(2, 1234, "cylceiling")
+    gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag, box_ceilingtag], 1001)
+    gmsh.model.setPhysicalName(2, 1001, "Hinge ceilings")
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
     gmsh.model.mesh.generate(3)

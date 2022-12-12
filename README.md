@@ -7,5 +7,8 @@ If you don't have the packages installed yet, you can install the required packa
 
 ## Run in parallel
 To run the FEM process in parallel, MPI need to be installed. `Microsoft MPI` for Windows, `MPICH` for other platforms.
-Then use command `mpiexec -n 4 julia --project [file to run]` to run the parallel Julia file.
-`mpiexecjl -n 4 julia --project [file to run]` is used for Unix-based system.
+Then use command `mpiexec -n 4 julia --project=. [file to run]` to run the parallel Julia file.
+`mpiexecjl -n 4 julia --project=. [file to run]` is used for Unix-based system.
+
+## Precompile libraries
+To generate a local precompilation of the libraries for speedup, run the precompilePackageGenerate.jl and precompilePackageRun.jl files. This will create a .so file, which you can add with the `-J "[filename].so"` option. So an example final command would be `mpiexecjl -n 4 julia -J "PreCompileRun.so" --project=. .\src\poisson.jl`

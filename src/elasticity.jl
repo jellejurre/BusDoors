@@ -64,7 +64,7 @@ end
 forces = map((cell) -> get_force(cell), get_cell_coordinates(model))
 
 # Set up equation
-σ(ε) = λ*tr(ε)*one(ε) + 2*μ*ε
+# σ(ε) = λ*tr(ε)*one(ε) + 2*μ*ε => # for 1 material only, here instead we use σ_bimat
 degree = 2*order
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)

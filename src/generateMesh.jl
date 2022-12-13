@@ -2,7 +2,7 @@ using Gmsh
 import Gmsh: gmsh
 # 1 = aluminium frame, 2 = glass, 3 = rubber
 # (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from z1 to z2)
-function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
+function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, hand_area_bool, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
@@ -189,58 +189,94 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.geo.addVolume([34], 34)
 
     # cylinder (top left)
-    xcyl1 = x1-0.04107
-    ycyl1 = y1-0.091677
-    zcyl1 = 0
-    cylheight1 = -0.05  # -, since it pokes out to negative z
-    r = 0.015458
-    gmsh.model.geo.addPoint(xcyl1,   ycyl1,   zcyl1, meshSize, 1000)
-    gmsh.model.geo.addPoint(xcyl1 + r,   ycyl1,   zcyl1, meshSize, 1001)
-    gmsh.model.geo.addPoint(xcyl1,   ycyl1 - r,   zcyl1, meshSize, 1002)
-    gmsh.model.geo.addPoint(xcyl1 - r,   ycyl1,   zcyl1, meshSize, 1003)
-    gmsh.model.geo.addPoint(xcyl1,   ycyl1 + r,   zcyl1, meshSize, 1004)
-    # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
-    gmsh.model.geo.addCircleArc(1001, 1000, 1002, 1000)
-    gmsh.model.geo.addCircleArc(1002, 1000, 1003, 1001)
-    gmsh.model.geo.addCircleArc(1003, 1000, 1004, 1002)
-    gmsh.model.geo.addCircleArc(1004, 1000, 1001, 1003)
-    gmsh.model.geo.addCurveLoop([1000, 1001, 1002, 1003], 1000)
-    gmsh.model.geo.addPlaneSurface([1000], 1000)
-    # extrude returns array of pairs (dim, tag) for volumes
-    cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight1)
-    # filter away 2d planes, keeping 3d volumes
-    cyl_ceilingtag = cyltags[1][2]
-    cyltags = filter(tuple -> tuple[1] == 3, cyltags)
-    cyltags = map(tuple -> tuple[2], cyltags)
+    if hinges_bool
+        # location center of cylinder
+        xcyl1 = x1-0.04107
+        ycyl1 = y1-0.091677
+        zcyl1 = 0
+        cylheight1 = -0.05  # -, since it pokes out to negative z
+        r = 0.015458
+        gmsh.model.geo.addPoint(xcyl1,   ycyl1,   zcyl1, meshSize, 1000)
+        gmsh.model.geo.addPoint(xcyl1 + r,   ycyl1,   zcyl1, meshSize, 1001)
+        gmsh.model.geo.addPoint(xcyl1,   ycyl1 - r,   zcyl1, meshSize, 1002)
+        gmsh.model.geo.addPoint(xcyl1 - r,   ycyl1,   zcyl1, meshSize, 1003)
+        gmsh.model.geo.addPoint(xcyl1,   ycyl1 + r,   zcyl1, meshSize, 1004)
+        # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
+        gmsh.model.geo.addCircleArc(1001, 1000, 1002, 1000)
+        gmsh.model.geo.addCircleArc(1002, 1000, 1003, 1001)
+        gmsh.model.geo.addCircleArc(1003, 1000, 1004, 1002)
+        gmsh.model.geo.addCircleArc(1004, 1000, 1001, 1003)
+        gmsh.model.geo.addCurveLoop([1000, 1001, 1002, 1003], 1000)
+        gmsh.model.geo.addPlaneSurface([1000], 1000)
+        # extrude returns array of pairs (dim, tag) for volumes
+        cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight1)
+        # filter away 2d planes, keeping 3d volumes
+        cyl_ceilingtag = cyltags[1][2]
+        cyl_volume_tag = filter(tuple -> tuple[1] == 3, cyltags)
+        cyl_volume_tag = map(tuple -> tuple[2], cyl_volume_tag)[1]
+        free_cyl_tags = symdiff(map(tuple -> tuple[2], cyltags), [cyl_ceilingtag, cyl_volume_tag])
 
-    # hinge box (bottom right)
-    # dimensions box:
-    xbox1 = 0.05
-    ybox1 = 0.05
+        
+        # hinge box (bottom right)
+        # dimensions box:
+        xbox1 = 0.05
+        ybox1 = 0.05
 
-    # locations points:
-    xbox1l = 0.05
-    ybox1l = 0.05
-    zbox1 = 0
-    boxheight1 = -0.05 # -, since it pokes out to negative z
-    gmsh.model.geo.addPoint(xbox1l,   ybox1l,   zbox1, meshSize, 1100)
-    gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l,   zbox1, meshSize, 1101)
-    gmsh.model.geo.addPoint(xbox1l,   ybox1l + ybox1,   zbox1, meshSize, 1102)
-    gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l + ybox1,   zbox1, meshSize, 1103)
+        # locations points:
+        xbox1l = 0.05
+        ybox1l = 0.05
+        zbox1 = 0
+        boxheight1 = -0.05 # -, since it pokes out to negative z
+        gmsh.model.geo.addPoint(xbox1l,   ybox1l,   zbox1, meshSize, 1100)
+        gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l,   zbox1, meshSize, 1101)
+        gmsh.model.geo.addPoint(xbox1l,   ybox1l + ybox1,   zbox1, meshSize, 1102)
+        gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l + ybox1,   zbox1, meshSize, 1103)
 
-    gmsh.model.geo.addLine( 1100,  1101,  1100)
-    gmsh.model.geo.addLine( 1101,  1103,  1101)
-    gmsh.model.geo.addLine( 1103,  1102,  1102)
-    gmsh.model.geo.addLine( 1102,  1100,  1103)
-    gmsh.model.geo.addCurveLoop([1100, 1101, 1102, 1103], 1100)
-    gmsh.model.geo.addPlaneSurface([1100], 1100)
-    # extrude returns array of pairs (dim, tag) for volumes
-    boxtags = gmsh.model.geo.extrude([(2, 1100)], 0, 0, boxheight1)
-    # filter away 2d planes, keeping 3d volumes
-    box_ceilingtag = boxtags[1][2]
-    boxtags = filter(tuple -> tuple[1] == 3, boxtags)
-    boxtags = map(tuple -> tuple[2], boxtags)
+        gmsh.model.geo.addLine( 1100,  1101,  1100)
+        gmsh.model.geo.addLine( 1101,  1103,  1101)
+        gmsh.model.geo.addLine( 1103,  1102,  1102)
+        gmsh.model.geo.addLine( 1102,  1100,  1103)
+        gmsh.model.geo.addCurveLoop([1100, 1101, 1102, 1103], 1100)
+        gmsh.model.geo.addPlaneSurface([1100], 1100)
+        # extrude returns array of pairs (dim, tag) for volumes
+        boxtags = gmsh.model.geo.extrude([(2, 1100)], 0, 0, boxheight1)
+        # filter away 2d planes, keeping 3d volumes
+        box_ceilingtag = boxtags[1][2]
+        box_volume_tag = filter(tuple -> tuple[1] == 3, boxtags)
+        box_volume_tag = map(tuple -> tuple[2], box_volume_tag)[1]
+        free_box_tags = symdiff(map(tuple -> tuple[2], boxtags), [box_ceilingtag, box_volume_tag])
 
+        gmsh.model.addPhysicalGroup(3, [cyl_volume_tag, box_volume_tag], 1000)
+        gmsh.model.setPhysicalName(3, 1000, "Hinges")
+        gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag, box_ceilingtag], 1001)
+        gmsh.model.setPhysicalName(2, 1001, "Hinge ceilings")
+        gmsh.model.addPhysicalGroup(2, append!(free_box_tags, free_cyl_tags), 1002)
+        gmsh.model.setPhysicalName(2, 1002, "Hinge sides")
+    end
+
+    if hand_area_bool
+        # location center of hand
+        xhand = x1*0.5
+        yhand = y1*0.5
+        zhand = 0
+        r = 0.0315
+        gmsh.model.geo.addPoint(xhand,   yhand,   zhand, meshSize, 1200)
+        gmsh.model.geo.addPoint(xhand + r,   yhand,   zhand, meshSize, 1201)
+        gmsh.model.geo.addPoint(xhand,   yhand - r,   zhand, meshSize, 1202)
+        gmsh.model.geo.addPoint(xhand - r,   yhand,   zhand, meshSize, 1203)
+        gmsh.model.geo.addPoint(xhand,   yhand + r,   zhand, meshSize, 1204)
+        
+        # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
+        gmsh.model.geo.addCircleArc(1201, 1200, 1202, 1200)
+        gmsh.model.geo.addCircleArc(1202, 1200, 1203, 1201)
+        gmsh.model.geo.addCircleArc(1203, 1200, 1204, 1202)
+        gmsh.model.geo.addCircleArc(1204, 1200, 1201, 1203)
+        gmsh.model.geo.addCurveLoop([1200, 1201, 1202, 1203], 1200)
+        gmsh.model.geo.addPlaneSurface([1200], 1200)
+
+        gmsh.model.addPhysicalGroup(2, [1200], 1200)
+        gmsh.model.setPhysicalName(2, 1200, "Hand")
+    end
 
     # Physical groups
     # def: addPhysicalGroup(dim, tags, tag = -1, name = "")
@@ -249,11 +285,9 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     #   positive, or a new tag if `tag` < 0. Set the name of the physical group if
     #   `name` is not empty.
 
-    gmsh.model.addPhysicalGroup(1, [12,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
+    gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
-    gmsh.model.addPhysicalGroup(1, [11,13], 12)
-    gmsh.model.setPhysicalName(1, 12, "DirichletEdges")
-    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316, 1000], 2)
+    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
     gmsh.model.setPhysicalName(2, 2, "FreeAreas")
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Aluminium")
@@ -261,10 +295,7 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, meshSize)
     gmsh.model.setPhysicalName(3, 32, "Glass")
     gmsh.model.addPhysicalGroup(3, [31, 32, 33, 34], 33)
     gmsh.model.setPhysicalName(3, 33, "Rubber")
-    gmsh.model.addPhysicalGroup(3, append!(cyltags, boxtags), 1000)
-    gmsh.model.setPhysicalName(3, 1000, "Hinges")
-    gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag, box_ceilingtag], 1001)
-    gmsh.model.setPhysicalName(2, 1001, "Hinge ceilings")
+
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
     gmsh.model.mesh.generate(3)
@@ -282,4 +313,12 @@ z2 = 0.0023
 z2offset = z1*0.5
 x3 = 0.001531
 y3 = 0.005081
-MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, 0.01)
+
+# sizes and location of the following parts should be changed in the function MeshGenerator above
+# booleans for enabling/disabling certain parts of the mesh:
+# Physical group: Hinges, Hinge ceilings
+hinges_bool = true
+# Physical group: Hand
+hand_area_bool = true
+
+MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, hand_area_bool, 0.01)

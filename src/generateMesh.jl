@@ -316,7 +316,7 @@ y3 = 0.005081
 
 # sizes and location of the following parts should be changed in the function MeshGenerator above
 # booleans for enabling/disabling certain parts of the mesh:
-# Physical group: Hinges, Hinge ceilings
+# Physical group: Hinges, Hinge ceilings, Hinge sides
 hinges_bool = true
 # Physical group: Hand
 hand_area_bool = true

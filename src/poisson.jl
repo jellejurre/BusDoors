@@ -5,7 +5,7 @@ order = 2
 u((x,y)) = (x+y)^order
 f(x) = -Δ(u,x)
 reffe = ReferenceFE(lagrangian,Float64,order)
-V = TestFESpace(model,reffe,dirichlet_tags="DirichletEdges")
+V = TestFESpace(model,reffe,dirichlet_tags="Hand")
 U = TrialFESpace(u,V)
 Ω = Triangulation(model)
 dΩ = Measure(Ω,2*order)

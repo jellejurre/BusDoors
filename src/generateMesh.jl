@@ -173,10 +173,40 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
     gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
     gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
     gmsh.model.geo.addVolume([11, 12], 11)
-    
+    if hand_area_bool
+        # location center of hand
+        xhand = x1*0.5
+        yhand = y1*0.5
+        zhand = 0
+        r = 0.0315
+        gmsh.model.geo.addPoint(xhand,   yhand,   zhand, meshSize, 1200)
+        gmsh.model.geo.addPoint(xhand + r,   yhand,   zhand, meshSize, 1201)
+        gmsh.model.geo.addPoint(xhand,   yhand - r,   zhand, meshSize, 1202)
+        gmsh.model.geo.addPoint(xhand - r,   yhand,   zhand, meshSize, 1203)
+        gmsh.model.geo.addPoint(xhand,   yhand + r,   zhand, meshSize, 1204)
+        
+        # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
+        gmsh.model.geo.addCircleArc(1201, 1200, 1202, 1200)
+        gmsh.model.geo.addCircleArc(1202, 1200, 1203, 1201)
+        gmsh.model.geo.addCircleArc(1203, 1200, 1204, 1202)
+        gmsh.model.geo.addCircleArc(1204, 1200, 1201, 1203)
+        gmsh.model.geo.addCurveLoop([1200, 1201, 1202, 1203], 1200)
+        gmsh.model.geo.addPlaneSurface([1200], 1200)
+
+        gmsh.model.addPhysicalGroup(2, [1200], 1200)
+        gmsh.model.setPhysicalName(2, 1200, "Hand")
+    end
+    if hand_area_bool
+        gmsh.model.geo.addPlaneSurface([21, 1200], 1202) # glass area - hand
+
+        # inner volume glass
+        gmsh.model.geo.addSurfaceLoop([1202, 1200, 22, 23, 24, 25, 26], 21)
+        gmsh.model.geo.addVolume([21], 21)
+    else
     # inner volume glass
     gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
     gmsh.model.geo.addVolume([21], 21)
+    end
 
     # volume rubber
     gmsh.model.geo.addSurfaceLoop([31, 35, 39, 23, 313, 316], 31)
@@ -254,29 +284,7 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
         gmsh.model.setPhysicalName(2, 1002, "Hinge sides")
     end
 
-    if hand_area_bool
-        # location center of hand
-        xhand = x1*0.5
-        yhand = y1*0.5
-        zhand = 0
-        r = 0.0315
-        gmsh.model.geo.addPoint(xhand,   yhand,   zhand, meshSize, 1200)
-        gmsh.model.geo.addPoint(xhand + r,   yhand,   zhand, meshSize, 1201)
-        gmsh.model.geo.addPoint(xhand,   yhand - r,   zhand, meshSize, 1202)
-        gmsh.model.geo.addPoint(xhand - r,   yhand,   zhand, meshSize, 1203)
-        gmsh.model.geo.addPoint(xhand,   yhand + r,   zhand, meshSize, 1204)
-        
-        # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
-        gmsh.model.geo.addCircleArc(1201, 1200, 1202, 1200)
-        gmsh.model.geo.addCircleArc(1202, 1200, 1203, 1201)
-        gmsh.model.geo.addCircleArc(1203, 1200, 1204, 1202)
-        gmsh.model.geo.addCircleArc(1204, 1200, 1201, 1203)
-        gmsh.model.geo.addCurveLoop([1200, 1201, 1202, 1203], 1200)
-        gmsh.model.geo.addPlaneSurface([1200], 1200)
 
-        gmsh.model.addPhysicalGroup(2, [1200], 1200)
-        gmsh.model.setPhysicalName(2, 1200, "Hand")
-    end
 
     # Physical groups
     # def: addPhysicalGroup(dim, tags, tag = -1, name = "")
@@ -287,8 +295,13 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
 
     gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
-    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
-    gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+    if hand_area_bool
+        gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+        gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+    else
+        gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+        gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+    end
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Aluminium")
     gmsh.model.addPhysicalGroup(3, [21], 32)

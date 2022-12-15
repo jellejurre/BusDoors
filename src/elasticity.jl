@@ -44,32 +44,57 @@ function σ_bimat(ε,tag)
 end
 
 # Setup forces
-sources = [(10, 1, VectorValue(0,0,0), VectorValue(0, 0, 1))]
+sources = [(10, 5, VectorValue(0.3,1,0), VectorValue(0, 0, 1))]
+force_tag = get_tag_from_name(labels,"Glass")
 
 function bell_curve(mean, deviation, x)
   return 1/(deviation * sqrt(2 * π)) * ℯ^(-norm(x - mean)/(2 * deviation^2))
 end
 
+
+function get_volume(points)
+  point1 = points[1]
+  point2 = points[2]
+  point3 = points[3]
+  point4 = points[4]
+  vec1to2 = point2-point1
+  vec1to3 = point3-point1
+  vec1to4 = point4-point1
+  return (1/6) * abs(dot(cross(vec1to2, vec1to3), vec1to4)) 
+end
+
+force_tag_cells = Triangulation(model, tags=[force_tag])
+total_force_volume = sum(map((cell) -> get_volume(cell), get_cell_coordinates(force_tag_cells)))
+
 function get_force(x)
+  volume_fraction = get_volume(x)/total_force_volume
   nodeAverage = mean(x) #Average required because we have the coordinates of the four corners of the cell
   sum_forces = VectorValue(0, 0, 0)
   for source in sources
     amplitude = source[1] * bell_curve(source[3], source[2], nodeAverage)
     force_val = amplitude * source[4]
-    sum_forces += force_val
+    normalized_force_val = volume_fraction * force_val
+    sum_forces += normalized_force_val
   end
   return sum_forces
 end
 
 forces = map((cell) -> get_force(cell), get_cell_coordinates(model))
 
+function filter_tags(v, force, tag)
+  if tag == force_tag
+    return force ⋅ v
+  else 
+    return 0.0
+  end
+end
+
 # Set up equation
-# σ(ε) = λ*tr(ε)*one(ε) + 2*μ*ε => # for 1 material only, here instead we use σ_bimat
 degree = 2*order
 Ω = Triangulation(model)
 dΩ = Measure(Ω,degree)
 a(u,v) = ∫( ε(v) ⊙ (σ_bimat∘(ε(u),tags)) )*dΩ
-l(v) = ∫( v⋅forces )*dΩ
+l(v) = ∫( filter_tags∘(v,forces, tags) )*dΩ
 
 # Perform equation
 op = AffineFEOperator(a,l,U,V0)

@@ -95,6 +95,9 @@ function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
         gmsh.model.geo.addPlaneSurface([24], 24)    
         gmsh.model.geo.addPlaneSurface([25], 25)    
         gmsh.model.geo.addPlaneSurface([26], 26)
+
+        gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
+        gmsh.model.geo.addVolume([21], 21)
     end
 
     # Physical groups
@@ -116,7 +119,7 @@ function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
     if second_beam
         gmsh.model.addPhysicalGroup(1, [21,22,23,24,25, 26, 27, 28, 29, 210, 211, 212], 12)
         gmsh.model.setPhysicalName(1, 12, "FreeEdges2")
-        gmsh.model.addPhysicalGroup(2, [21, 22, 23, 25, 24], 23)
+        gmsh.model.addPhysicalGroup(2, [21, 22, 23, 24, 25], 23)
         gmsh.model.setPhysicalName(2, 23, "FreeAreas2")
         gmsh.model.addPhysicalGroup(2, [26], 24)
         gmsh.model.setPhysicalName(2, 24, "Dirichlet2")

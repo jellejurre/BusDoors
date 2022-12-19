@@ -34,4 +34,4 @@ function MeshGenerator(w, h, meshSize)
     gmsh.finalize()
 end
 
-MeshGenerator(0.69, 1.93, 0.1)
+MeshGenerator(0.69, 1.93, 0.01)

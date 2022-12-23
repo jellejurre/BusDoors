@@ -139,7 +139,6 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
     gmsh.model.geo.addCurveLoop([35, 36, 37, -38], 318)
 
 
-
     gmsh.model.geo.addPlaneSurface([11, 317], 11)   #loop with hole loop inside
     gmsh.model.geo.addPlaneSurface([12, 318], 12)
     gmsh.model.geo.addPlaneSurface([13], 13)
@@ -170,9 +169,11 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
     gmsh.model.geo.addPlaneSurface([316], 316)
 
     # outer volume aluminium
-    gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
-    gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
-    gmsh.model.geo.addVolume([11, 12], 11)
+    if !hinges_bool
+        gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
+        gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
+        gmsh.model.geo.addVolume([11, 12], 11)
+    end
     if hand_area_bool
         # location center of hand
         xhand = x1*0.5
@@ -276,6 +277,11 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
         box_volume_tag = map(tuple -> tuple[2], box_volume_tag)[1]
         free_box_tags = symdiff(map(tuple -> tuple[2], boxtags), [box_ceilingtag, box_volume_tag])
 
+        gmsh.model.geo.addPlaneSurface([11, 317, 1000, 1100], 1101)   #loop with hole loop inside and holes for hinges
+        gmsh.model.geo.addSurfaceLoop([1101, 12, 13, 14, 15, 16, 1000, 1100], 11)
+        gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
+        gmsh.model.geo.addVolume([11, 12], 11)
+
         gmsh.model.addPhysicalGroup(3, [cyl_volume_tag, box_volume_tag], 1000)
         gmsh.model.setPhysicalName(3, 1000, "Hinges")
         gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag, box_ceilingtag], 1001)
@@ -296,11 +302,21 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
     gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
     if hand_area_bool
-        gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
-        gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        if hinges_bool
+            gmsh.model.addPhysicalGroup(2, [1101, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        else
+            gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        end
     else
-        gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
-        gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        if hinges_bool
+            gmsh.model.addPhysicalGroup(2, [1101, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        else
+            gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.setPhysicalName(2, 2, "FreeAreas")
+        end
     end
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Aluminium")
@@ -332,6 +348,6 @@ y3 = 0.005081
 # Physical group: Hinges, Hinge ceilings, Hinge sides
 hinges_bool = true
 # Physical group: Hand
-hand_area_bool = true
+hand_area_bool = false
 
 MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, hand_area_bool, 0.01)

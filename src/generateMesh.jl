@@ -196,6 +196,8 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
 
         gmsh.model.addPhysicalGroup(2, [1200], 1200)
         gmsh.model.setPhysicalName(2, 1200, "Hand")
+        gmsh.model.addPhysicalGroup(1, [1200, 1201, 1202, 1203], 1201)
+        gmsh.model.setPhysicalName(1, 1201, "Hand edges")
     end
     if hand_area_bool
         gmsh.model.geo.addPlaneSurface([21, 1200], 1202) # glass area - hand
@@ -282,12 +284,22 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
         gmsh.model.geo.addSurfaceLoop([31, 34, 33, 32], 12)     #only remove the sides, already a hole in surface 11, 12
         gmsh.model.geo.addVolume([11, 12], 11)
 
-        gmsh.model.addPhysicalGroup(3, [cyl_volume_tag, box_volume_tag], 1000)
-        gmsh.model.setPhysicalName(3, 1000, "Hinges")
-        gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag, box_ceilingtag], 1001)
-        gmsh.model.setPhysicalName(2, 1001, "Hinge ceilings")
-        gmsh.model.addPhysicalGroup(2, append!(free_box_tags, free_cyl_tags), 1002)
-        gmsh.model.setPhysicalName(2, 1002, "Hinge sides")
+        gmsh.model.addPhysicalGroup(1, [1000, 1001, 1002, 1003, 1100, 1101, 1102, 1103], 1003)
+        gmsh.model.setPhysicalName(1, 1003, "Hinge edges")
+
+        gmsh.model.addPhysicalGroup(3, [cyl_volume_tag], 1000)
+        gmsh.model.setPhysicalName(3, 1000, "Hinge top")
+        gmsh.model.addPhysicalGroup(2, [cyl_ceilingtag], 1001)
+        gmsh.model.setPhysicalName(2, 1001, "Hinge ceiling top")
+        gmsh.model.addPhysicalGroup(2, free_cyl_tags, 1002)
+        gmsh.model.setPhysicalName(2, 1002, "Hinge sides top")
+
+        gmsh.model.addPhysicalGroup(3, [box_volume_tag], 1100)
+        gmsh.model.setPhysicalName(3, 1100, "Hinge bottom")
+        gmsh.model.addPhysicalGroup(2, [box_ceilingtag], 1101)
+        gmsh.model.setPhysicalName(2, 1101, "Hinge ceiling bottom")
+        gmsh.model.addPhysicalGroup(2, free_box_tags, 1102)
+        gmsh.model.setPhysicalName(2, 1102, "Hinge sides bottom")
     end
 
 
@@ -299,25 +311,33 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, ha
     #   positive, or a new tag if `tag` < 0. Set the name of the physical group if
     #   `name` is not empty.
 
-    gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 1000, 1001, 1002, 1003], 11)
+    gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112, 21, 22, 23, 24, 25, 26, 27, 28, 29, 210, 211, 212, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges")
     if hand_area_bool
         if hinges_bool
-            gmsh.model.addPhysicalGroup(2, [1101, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.addPhysicalGroup(2, [1101, 12, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
             gmsh.model.setPhysicalName(2, 2, "FreeAreas")
         else
-            gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.addPhysicalGroup(2, [11, 12, 1202, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
             gmsh.model.setPhysicalName(2, 2, "FreeAreas")
         end
     else
         if hinges_bool
-            gmsh.model.addPhysicalGroup(2, [1101, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.addPhysicalGroup(2, [1101, 12, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
             gmsh.model.setPhysicalName(2, 2, "FreeAreas")
         else
-            gmsh.model.addPhysicalGroup(2, [11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
+            gmsh.model.addPhysicalGroup(2, [11, 12, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 37, 38, 39, 310, 311, 312, 313, 314, 315, 316], 2)
             gmsh.model.setPhysicalName(2, 2, "FreeAreas")
         end
     end
+    gmsh.model.addPhysicalGroup(2, [16], 21)
+    gmsh.model.setPhysicalName(2, 21, "Area top")
+    gmsh.model.addPhysicalGroup(2, [15], 22)
+    gmsh.model.setPhysicalName(2, 22, "Area bottom")
+    gmsh.model.addPhysicalGroup(2, [13], 23)
+    gmsh.model.setPhysicalName(2, 23, "Area left")
+    gmsh.model.addPhysicalGroup(2, [14], 24)
+    gmsh.model.setPhysicalName(2, 24, "Area right")
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Aluminium")
     gmsh.model.addPhysicalGroup(3, [21], 32)
@@ -345,9 +365,9 @@ y3 = 0.005081
 
 # sizes and location of the following parts should be changed in the function MeshGenerator above
 # booleans for enabling/disabling certain parts of the mesh:
-# Physical group: Hinges, Hinge ceilings, Hinge sides
+# Physical group: Hinge top/bottom, Hinge ceiling top/bottom, Hinge sides top/bottom, Hinge edges
 hinges_bool = true
-# Physical group: Hand
+# Physical group: Hand, Hand edges
 hand_area_bool = false
 
 MeshGenerator(x1, y1, z1, x2, y2, z2, z2offset, x3, y3, hinges_bool, hand_area_bool, 0.01)

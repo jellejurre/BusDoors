@@ -9,53 +9,50 @@ using Printf
 MPI.Init()
 comm = MPI.COMM_WORLD
 n = MPI.Comm_size(comm)
+rank= MPI.Comm_rank(comm)
 
 function main(parts)
   options = "-ksp_type cg -pc_type gamg -ksp_monitor"
   GridapPETSc.with(args=split(options)) do
-    model = GmshDiscreteModel("./geometry.msh")
-    order = 2
-    u((x,y)) = (x+y)^order
-    f(x) = -Δ(u,x)
-    reffe = ReferenceFE(lagrangian,Float64,order)
-    V = TestFESpace(model,reffe,dirichlet_tags="DirichletEdges")
-    U = TrialFESpace(u,V)
-    Ω = Triangulation(model)
-    dΩ = Measure(Ω,2*order)
-    a(u,v) = ∫( ∇(v)⋅∇(u) )dΩ
-    l(v) = ∫( v*f )dΩ
-    op = AffineFEOperator(a,l,U,V)
-    # LU Solver
-    time = @elapsed begin 
-      uh = solve(op)
+    read_model_time = @elapsed begin
+      model = GmshDiscreteModel(parts, "./geometry.msh")
     end
-    @printf("LU Solver: %.20f", time)
-    # Backslash Solver
-    op = AffineFEOperator(a,l,U,V)
-    solver = LinearFESolver(BackslashSolver())
-    time = @elapsed begin 
-      uh = solve(solver, op)
+
+    precompute_time = @elapsed begin
+      order = 2
+      u((x,y)) = (x+y)^order
+      f(x) = -Δ(u,x)
+      reffe = ReferenceFE(lagrangian,Float64,order)
+      V = TestFESpace(model,reffe,dirichlet_tags="DirichletEdges")
+      U = TrialFESpace(u,V)
+      Ω = Triangulation(model)
+      dΩ = Measure(Ω,2*order)
+      a(u,v) = ∫( ∇(v)⋅∇(u) )dΩ
+      l(v) = ∫( v*f )dΩ
+      op = AffineFEOperator(a,l,U,V)
+      backslash_solver = BackslashSolver()
+      PETSC_solver = PETScLinearSolver()
     end
-    @printf("Backslash Solver: %.20f", time)
-    # Newton Raphson Solver
-    op = AffineFEOperator(a,l,U,V)
-    solver = FESolver()
-    time = @elapsed begin 
-      uh = solve(solver, op)
+
+    LU_compute_time = @elapsed begin
+      uh = @time solve(op)
     end
-    @printf("Newton Raphson Solver: %.20f", time)
-    # PETScLinearSolver
-    solver = PETScLinearSolver()
-    time = @elapsed begin 
-      uh = solve(solver, op)
+
+    Backslash_compute_time = @elapsed begin
+      uh = @time solve(backslash_solver, op)
     end
-    @printf("PETScLinearSolver: %.20f", time)
-    # PETScNonlinearSolver
-    # solver = PETScNonlinearSolver()
-    # time = @elapsed begin 
-    #   uh = solve(solver, op)
-    # end
-    @printf("PETScNonlinearSolver: %.20f", time)
+
+    PETSC_compute_time = @elapsed begin
+      uh = @time solve(PETSC_solver, op)
+    end
+
+    if (rank == 0)
+      @printf "Time for reading model: %.5f\n" read_model_time
+      @printf "Time for precomputation: %.5f\n" precompute_time
+      @printf "Time for LU Solver: %.5f\n" LU_compute_time
+      @printf "Time for Backslash Solver: %.5f\n" Backslash_compute_time
+      @printf "Time for PETSC Solver: %.5f\n" PETSC_compute_time
+    end
     writevtk(Ω,"results",cellfields=["uh"=>uh,"grad_uh"=>∇(uh)])
   end
 end

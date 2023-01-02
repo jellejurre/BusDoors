@@ -47,17 +47,17 @@ function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
     gmsh.model.geo.addPlaneSurface([16], 16)
 
     # outer volume aluminium
-    gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
-    gmsh.model.geo.addVolume([11], 11)
+    # gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
+    # gmsh.model.geo.addVolume([11], 11)
 
     if second_beam
         
         # low and high points of x2, y2 and z2
-        x2l = 0
+        x2l = 0.01
         x2h = x2
         y2l = y1
         y2h = y1 + y2
-        z2l = 0
+        z2l = 0.01
         z2h = z2
 
         gmsh.model.geo.addPoint(x2l,   y2l,   z2l, meshSize, 21)
@@ -96,6 +96,12 @@ function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
         gmsh.model.geo.addPlaneSurface([25], 25)    
         gmsh.model.geo.addPlaneSurface([26], 26)
 
+            gmsh.model.geo.addPlaneSurface([16, 25], 17)
+            gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 17, 25], 11)
+            # gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 17], 11)
+            gmsh.model.geo.addVolume([11], 11)
+
+
         gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
         gmsh.model.geo.addVolume([21], 21)
     end
@@ -109,7 +115,7 @@ function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
 
     gmsh.model.addPhysicalGroup(1, [11,12,13,14,15, 16, 17, 18, 19, 110, 111, 112], 11)
     gmsh.model.setPhysicalName(1, 11, "FreeEdges1")
-    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 15, 16], 21)
+    gmsh.model.addPhysicalGroup(2, [11, 12, 13, 15, 17], 21)
     gmsh.model.setPhysicalName(2, 21, "FreeAreas1")
     gmsh.model.addPhysicalGroup(2, [14], 22)
     gmsh.model.setPhysicalName(2, 22, "Dirichlet1")
@@ -139,7 +145,7 @@ x1 = 1
 y1 = 0.05
 z1 = 0.05
 second_beam = true
-x2 = 0.05
+x2 = 0.03
 y2 = 1
-z2 = 0.05
+z2 = 0.03
 MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, 0.01)

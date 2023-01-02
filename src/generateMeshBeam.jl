@@ -1,6 +1,6 @@
 using Gmsh
 import Gmsh: gmsh
-function MeshGeneratorBeam(x1, y1, z1, meshSize)
+function MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
@@ -50,6 +50,56 @@ function MeshGeneratorBeam(x1, y1, z1, meshSize)
     gmsh.model.geo.addSurfaceLoop([11, 12, 13, 14, 15, 16], 11)
     gmsh.model.geo.addVolume([11], 11)
 
+    if second_beam
+        
+        # low and high points of x2, y2 and z2
+        x2l = 0
+        x2h = x2
+        y2l = y1
+        y2h = y1 + y2
+        z2l = 0
+        z2h = z2
+
+        gmsh.model.geo.addPoint(x2l,   y2l,   z2l, meshSize, 21)
+        gmsh.model.geo.addPoint(x2l,   y2h,   z2l, meshSize, 22)
+        gmsh.model.geo.addPoint(x2h,   y2h,   z2l, meshSize, 23)
+        gmsh.model.geo.addPoint(x2h,   y2l,   z2l, meshSize, 24)
+        gmsh.model.geo.addPoint(x2l,   y2l,   z2h, meshSize, 25)
+        gmsh.model.geo.addPoint(x2l,   y2h,   z2h, meshSize, 26)
+        gmsh.model.geo.addPoint(x2h,   y2h,   z2h, meshSize, 27)
+        gmsh.model.geo.addPoint(x2h,   y2l,   z2h, meshSize, 28)
+
+        gmsh.model.geo.addLine( 21,  22,  21)
+        gmsh.model.geo.addLine( 22,  23,  22)
+        gmsh.model.geo.addLine( 23,  24,  23)
+        gmsh.model.geo.addLine( 21,  24,  24)
+        gmsh.model.geo.addLine( 25,  26,  25)
+        gmsh.model.geo.addLine( 26,  27,  26)
+        gmsh.model.geo.addLine( 27,  28,  27)
+        gmsh.model.geo.addLine( 25,  28,  28)
+        gmsh.model.geo.addLine( 25,  21,  29)
+        gmsh.model.geo.addLine( 26,  22,  210)
+        gmsh.model.geo.addLine( 27,  23,  211)
+        gmsh.model.geo.addLine( 28,  24,  212)
+
+        gmsh.model.geo.addCurveLoop([21, 22, 23, -24], 21)
+        gmsh.model.geo.addCurveLoop([25, 26, 27, -28], 22)
+        gmsh.model.geo.addCurveLoop([21, -210, -25, 29], 23)
+        gmsh.model.geo.addCurveLoop([-23, -211, 27, 212], 24)
+        gmsh.model.geo.addCurveLoop([-24, -29, 28, 212], 25)
+        gmsh.model.geo.addCurveLoop([211, -22, -210, 26], 26)
+
+        gmsh.model.geo.addPlaneSurface([21], 21)
+        gmsh.model.geo.addPlaneSurface([22], 22)    
+        gmsh.model.geo.addPlaneSurface([23], 23)    
+        gmsh.model.geo.addPlaneSurface([24], 24)    
+        gmsh.model.geo.addPlaneSurface([25], 25)    
+        gmsh.model.geo.addPlaneSurface([26], 26)
+
+        gmsh.model.geo.addSurfaceLoop([21, 22, 23, 24, 25, 26], 21)
+        gmsh.model.geo.addVolume([21], 21)
+    end
+
     # Physical groups
     # def: addPhysicalGroup(dim, tags, tag = -1, name = "")
     #   Add a physical group of dimension `dim`, grouping the model entities with tags
@@ -66,6 +116,16 @@ function MeshGeneratorBeam(x1, y1, z1, meshSize)
     gmsh.model.addPhysicalGroup(3, [11], 31)
     gmsh.model.setPhysicalName(3, 31, "Beam1")
 
+    if second_beam
+        gmsh.model.addPhysicalGroup(1, [21,22,23,24,25, 26, 27, 28, 29, 210, 211, 212], 12)
+        gmsh.model.setPhysicalName(1, 12, "FreeEdges2")
+        gmsh.model.addPhysicalGroup(2, [21, 22, 23, 24, 25], 23)
+        gmsh.model.setPhysicalName(2, 23, "FreeAreas2")
+        gmsh.model.addPhysicalGroup(2, [26], 24)
+        gmsh.model.setPhysicalName(2, 24, "Dirichlet2")
+        gmsh.model.addPhysicalGroup(3, [21], 32)
+        gmsh.model.setPhysicalName(3, 32, "Beam2") 
+    end
 
     gmsh.model.geo.synchronize()
     # We can then generate a 3D mesh...
@@ -78,4 +138,8 @@ end
 x1 = 1
 y1 = 0.05
 z1 = 0.05
-MeshGeneratorBeam(x1, y1, z1, 0.01)
+second_beam = true
+x2 = 0.05
+y2 = 1
+z2 = 0.05
+MeshGeneratorBeam(x1, y1, z1, x2, y2, z2, second_beam, 0.01)

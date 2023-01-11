@@ -1,6 +1,19 @@
 using Gmsh
 import Gmsh: gmsh
-# (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from aluminium_z to glass_z)
+
+# At the bottom of the code the input values can be changed for generating the model
+
+# Function to generate the parametric door and optionally two hinges and a circular area for a pushing hand.
+# aluminium: tuple of x, y, z dimensions of the outer aluminium frame
+# glass: tuple of x, y, z dimensions of the inner glass plane
+# rubber: tuple of x, y -> the width of the rubber between the aluminium and glass on the x axis and y axis
+# hinges_bool: if true, add two hinges (a cylinder and a box) to the model
+# hand_area_bool: if true, add a circular area for a pushing hand.
+# cyl_measurements: tuple of x, y, z, cylheight, rcyl -> the location of the center point of the cylinder, the height of the cylinder and the radius of the circle
+# box_measurements: tuple of xbox, ybox, boxheight, x, y, z -> the dimensions of the box in x, y and its height. Then the location of the point of the corner closest to (0,0,0)
+# hand_measurements: tuple of x, y, z, r -> location of the hand and its radius
+# meshSize: target mesh sizes
+
 function MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
@@ -238,7 +251,7 @@ function MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cy
         xcyl = cyl_measurements[1]
         ycyl = cyl_measurements[2]
         zcyl = cyl_measurements[3]
-        cylheight1 = cyl_measurements[4]
+        cylheight = cyl_measurements[4]
         rcyl = cyl_measurements[5]
         gmsh.model.geo.addPoint(xcyl,   ycyl,   zcyl, meshSize, 1000)
         gmsh.model.geo.addPoint(xcyl + rcyl,   ycyl,   zcyl, meshSize, 1001)
@@ -253,7 +266,7 @@ function MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cy
         gmsh.model.geo.addCurveLoop([1000, 1001, 1002, 1003], 1000)
         gmsh.model.geo.addPlaneSurface([1000], 1000)
         # extrude returns array of pairs (dim, tag) for volumes
-        cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight1)
+        cyltags = gmsh.model.geo.extrude([(2, 1000)], 0, 0, cylheight)
         # filter away 2d planes, keeping 3d volumes
         cyl_ceilingtag = cyltags[1][2]
         cyl_volume_tag = filter(tuple -> tuple[1] == 3, cyltags)
@@ -386,9 +399,9 @@ xcyl = aluminium_x-0.04107
 ycyl = aluminium_y-0.091677
 zcyl = 0
 # dimensions cylinder:
-cylheight1 = -0.05  # -, since it pokes out to negative z
+cylheight = -0.05  # -, since it pokes out to negative z
 rcyl = 0.015458
-cyl_measurements = (xcyl, ycyl, zcyl, cylheight1, rcyl)
+cyl_measurements = (xcyl, ycyl, zcyl, cylheight, rcyl)
 
 # hinge box (bottom right)
 # dimensions box:

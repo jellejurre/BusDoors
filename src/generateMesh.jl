@@ -1,57 +1,68 @@
 using Gmsh
 import Gmsh: gmsh
-# 1 = aluminium frame, 2 = glass, 3 = rubber
-# (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from z1 to z2)
-function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bool, meshSize)
+# (x and y for rubber are thickness, not total width/height. No z value for rubber, goes from aluminium_z to glass_z)
+function MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, meshSize)
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("Mesh.Algorithm", 6)
     gmsh.clear()
     gmsh.model.add("geometry")
-    
-    # low and high points of x2, y2 and z2
-    x2l = 0.5*x1 - 0.5*x2
-    x2h = 0.5*x1 + 0.5*x2
-    y2l = 0.5*y1 - 0.5*y2
-    y2h = 0.5*y1 + 0.5*y2
-    z2l = 0.5*z1 - 0.5*z2
-    z2h = 0.5*z1 + 0.5*z2
 
-    x3l = 0.5*x1 - 0.5*x2 - x3
-    x3h = 0.5*x1 + 0.5*x2 + x3
-    y3l = 0.5*y1 - 0.5*y2 - y3
-    y3h = 0.5*y1 + 0.5*y2 + y3
+    aluminium_x = aluminium[1]
+    aluminium_y = aluminium[2]
+    aluminium_z = aluminium[3]
+
+    glass_x = glass[1]
+    glass_y = glass[2]
+    glass_z = glass[3]
+
+    # the width of the rubber between the aluminium and glass on the x axis and y axis
+    rubber_x = rubber[1]
+    rubber_y = rubber[2]
+    
+    # low and high points of glass_x, glass_y and glass_z
+    glass_xl = 0.5*aluminium_x - 0.5*glass_x
+    glass_xh = 0.5*aluminium_x + 0.5*glass_x
+    glass_yl = 0.5*aluminium_y - 0.5*glass_y
+    glass_yh = 0.5*aluminium_y + 0.5*glass_y
+    glass_zl = 0.5*aluminium_z - 0.5*glass_z
+    glass_zh = 0.5*aluminium_z + 0.5*glass_z
+
+    rubber_xl = 0.5*aluminium_x - 0.5*glass_x - rubber_x
+    rubber_xh = 0.5*aluminium_x + 0.5*glass_x + rubber_x
+    rubber_yl = 0.5*aluminium_y - 0.5*glass_y - rubber_y
+    rubber_yh = 0.5*aluminium_y + 0.5*glass_y + rubber_y
     z3l = 0
-    z3h = z1
+    z3h = aluminium_z
 
     # Tags: 1st digit = which physical group (aluminium = 1, glass = 2)
     # Add points
     gmsh.model.geo.addPoint(0,   0,   0, meshSize, 11)
-    gmsh.model.geo.addPoint(0,   y1,   0, meshSize, 12)
-    gmsh.model.geo.addPoint(x1,   y1,   0, meshSize, 13)
-    gmsh.model.geo.addPoint(x1,   0,   0, meshSize, 14)
-    gmsh.model.geo.addPoint(0,   0,   z1, meshSize, 15)
-    gmsh.model.geo.addPoint(0,   y1,   z1, meshSize, 16)
-    gmsh.model.geo.addPoint(x1,   y1,   z1, meshSize, 17)
-    gmsh.model.geo.addPoint(x1,   0,   z1, meshSize, 18)
+    gmsh.model.geo.addPoint(0,   aluminium_y,   0, meshSize, 12)
+    gmsh.model.geo.addPoint(aluminium_x,   aluminium_y,   0, meshSize, 13)
+    gmsh.model.geo.addPoint(aluminium_x,   0,   0, meshSize, 14)
+    gmsh.model.geo.addPoint(0,   0,   aluminium_z, meshSize, 15)
+    gmsh.model.geo.addPoint(0,   aluminium_y,   aluminium_z, meshSize, 16)
+    gmsh.model.geo.addPoint(aluminium_x,   aluminium_y,   aluminium_z, meshSize, 17)
+    gmsh.model.geo.addPoint(aluminium_x,   0,   aluminium_z, meshSize, 18)
 
-    gmsh.model.geo.addPoint(x2l,   y2l,   z2l, meshSize, 21)
-    gmsh.model.geo.addPoint(x2l,   y2h,   z2l, meshSize, 22)
-    gmsh.model.geo.addPoint(x2h,   y2h,   z2l, meshSize, 23)
-    gmsh.model.geo.addPoint(x2h,   y2l,   z2l, meshSize, 24)
-    gmsh.model.geo.addPoint(x2l,   y2l,   z2h, meshSize, 25)
-    gmsh.model.geo.addPoint(x2l,   y2h,   z2h, meshSize, 26)
-    gmsh.model.geo.addPoint(x2h,   y2h,   z2h, meshSize, 27)
-    gmsh.model.geo.addPoint(x2h,   y2l,   z2h, meshSize, 28)
+    gmsh.model.geo.addPoint(glass_xl,   glass_yl,   glass_zl, meshSize, 21)
+    gmsh.model.geo.addPoint(glass_xl,   glass_yh,   glass_zl, meshSize, 22)
+    gmsh.model.geo.addPoint(glass_xh,   glass_yh,   glass_zl, meshSize, 23)
+    gmsh.model.geo.addPoint(glass_xh,   glass_yl,   glass_zl, meshSize, 24)
+    gmsh.model.geo.addPoint(glass_xl,   glass_yl,   glass_zh, meshSize, 25)
+    gmsh.model.geo.addPoint(glass_xl,   glass_yh,   glass_zh, meshSize, 26)
+    gmsh.model.geo.addPoint(glass_xh,   glass_yh,   glass_zh, meshSize, 27)
+    gmsh.model.geo.addPoint(glass_xh,   glass_yl,   glass_zh, meshSize, 28)
 
-    gmsh.model.geo.addPoint(x3l,   y3l,   z3l, meshSize, 31)
-    gmsh.model.geo.addPoint(x3l,   y3h,   z3l, meshSize, 32)
-    gmsh.model.geo.addPoint(x3h,   y3h,   z3l, meshSize, 33)
-    gmsh.model.geo.addPoint(x3h,   y3l,   z3l, meshSize, 34)
-    gmsh.model.geo.addPoint(x3l,   y3l,   z3h, meshSize, 35)
-    gmsh.model.geo.addPoint(x3l,   y3h,   z3h, meshSize, 36)
-    gmsh.model.geo.addPoint(x3h,   y3h,   z3h, meshSize, 37)
-    gmsh.model.geo.addPoint(x3h,   y3l,   z3h, meshSize, 38)
+    gmsh.model.geo.addPoint(rubber_xl,   rubber_yl,   z3l, meshSize, 31)
+    gmsh.model.geo.addPoint(rubber_xl,   rubber_yh,   z3l, meshSize, 32)
+    gmsh.model.geo.addPoint(rubber_xh,   rubber_yh,   z3l, meshSize, 33)
+    gmsh.model.geo.addPoint(rubber_xh,   rubber_yl,   z3l, meshSize, 34)
+    gmsh.model.geo.addPoint(rubber_xl,   rubber_yl,   z3h, meshSize, 35)
+    gmsh.model.geo.addPoint(rubber_xl,   rubber_yh,   z3h, meshSize, 36)
+    gmsh.model.geo.addPoint(rubber_xh,   rubber_yh,   z3h, meshSize, 37)
+    gmsh.model.geo.addPoint(rubber_xh,   rubber_yl,   z3h, meshSize, 38)
     
     # Add lines
     gmsh.model.geo.addLine( 11,  12,  11)
@@ -176,15 +187,15 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bo
     end
     if hand_area_bool
         # location center of hand
-        xhand = x1*0.5
-        yhand = y1*0.5
-        zhand = 0.5*z1 - 0.5*z2
-        r = 0.0315
+        xhand = hand_measurements[1]
+        yhand = hand_measurements[2]
+        zhand = hand_measurements[3]
+        rhand = hand_measurements[4]
         gmsh.model.geo.addPoint(xhand,   yhand,   zhand, meshSize, 1200)
-        gmsh.model.geo.addPoint(xhand + r,   yhand,   zhand, meshSize, 1201)
-        gmsh.model.geo.addPoint(xhand,   yhand - r,   zhand, meshSize, 1202)
-        gmsh.model.geo.addPoint(xhand - r,   yhand,   zhand, meshSize, 1203)
-        gmsh.model.geo.addPoint(xhand,   yhand + r,   zhand, meshSize, 1204)
+        gmsh.model.geo.addPoint(xhand + rhand,   yhand,   zhand, meshSize, 1201)
+        gmsh.model.geo.addPoint(xhand,   yhand - rhand,   zhand, meshSize, 1202)
+        gmsh.model.geo.addPoint(xhand - rhand,   yhand,   zhand, meshSize, 1203)
+        gmsh.model.geo.addPoint(xhand,   yhand + rhand,   zhand, meshSize, 1204)
         
         # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
         gmsh.model.geo.addCircleArc(1201, 1200, 1202, 1200)
@@ -224,16 +235,16 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bo
     # cylinder (top left)
     if hinges_bool
         # location center of cylinder
-        xcyl1 = x1-0.04107
-        ycyl1 = y1-0.091677
-        zcyl1 = 0
-        cylheight1 = -0.05  # -, since it pokes out to negative z
-        r = 0.015458
-        gmsh.model.geo.addPoint(xcyl1,   ycyl1,   zcyl1, meshSize, 1000)
-        gmsh.model.geo.addPoint(xcyl1 + r,   ycyl1,   zcyl1, meshSize, 1001)
-        gmsh.model.geo.addPoint(xcyl1,   ycyl1 - r,   zcyl1, meshSize, 1002)
-        gmsh.model.geo.addPoint(xcyl1 - r,   ycyl1,   zcyl1, meshSize, 1003)
-        gmsh.model.geo.addPoint(xcyl1,   ycyl1 + r,   zcyl1, meshSize, 1004)
+        xcyl = cyl_measurements[1]
+        ycyl = cyl_measurements[2]
+        zcyl = cyl_measurements[3]
+        cylheight1 = cyl_measurements[4]
+        rcyl = cyl_measurements[5]
+        gmsh.model.geo.addPoint(xcyl,   ycyl,   zcyl, meshSize, 1000)
+        gmsh.model.geo.addPoint(xcyl + rcyl,   ycyl,   zcyl, meshSize, 1001)
+        gmsh.model.geo.addPoint(xcyl,   ycyl - rcyl,   zcyl, meshSize, 1002)
+        gmsh.model.geo.addPoint(xcyl - rcyl,   ycyl,   zcyl, meshSize, 1003)
+        gmsh.model.geo.addPoint(xcyl,   ycyl + rcyl,   zcyl, meshSize, 1004)
         # gmsh.model.geo.addCircleArc(startTag, centerTag, endTag, tag = -1, nx = 0., ny = 0., nz = 0.), must have arc < pi
         gmsh.model.geo.addCircleArc(1001, 1000, 1002, 1000)
         gmsh.model.geo.addCircleArc(1002, 1000, 1003, 1001)
@@ -252,18 +263,18 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bo
         
         # hinge box (bottom right)
         # dimensions box:
-        xbox1 = 0.05
-        ybox1 = 0.05
-
+        xbox = box_measurements[1]
+        ybox = box_measurements[2]
+        boxheight = box_measurements[3]
         # locations points:
-        xbox1l = 0.05
-        ybox1l = 0.05
-        zbox1 = 0
-        boxheight1 = -0.05 # -, since it pokes out to negative z
-        gmsh.model.geo.addPoint(xbox1l,   ybox1l,   zbox1, meshSize, 1100)
-        gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l,   zbox1, meshSize, 1101)
-        gmsh.model.geo.addPoint(xbox1l,   ybox1l + ybox1,   zbox1, meshSize, 1102)
-        gmsh.model.geo.addPoint(xbox1l + xbox1,   ybox1l + ybox1,   zbox1, meshSize, 1103)
+        xboxl = box_measurements[4]
+        yboxl = box_measurements[5]
+        zbox = box_measurements[6]
+
+        gmsh.model.geo.addPoint(xboxl,   yboxl,   zbox, meshSize, 1100)
+        gmsh.model.geo.addPoint(xboxl + xbox,   yboxl,   zbox, meshSize, 1101)
+        gmsh.model.geo.addPoint(xboxl,   yboxl + ybox,   zbox, meshSize, 1102)
+        gmsh.model.geo.addPoint(xboxl + xbox,   yboxl + ybox,   zbox, meshSize, 1103)
 
         gmsh.model.geo.addLine( 1100,  1101,  1100)
         gmsh.model.geo.addLine( 1101,  1103,  1101)
@@ -272,7 +283,7 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bo
         gmsh.model.geo.addCurveLoop([1100, 1101, 1102, 1103], 1100)
         gmsh.model.geo.addPlaneSurface([1100], 1100)
         # extrude returns array of pairs (dim, tag) for volumes
-        boxtags = gmsh.model.geo.extrude([(2, 1100)], 0, 0, boxheight1)
+        boxtags = gmsh.model.geo.extrude([(2, 1100)], 0, 0, boxheight)
         # filter away 2d planes, keeping 3d volumes
         box_ceilingtag = boxtags[1][2]
         box_volume_tag = filter(tuple -> tuple[1] == 3, boxtags)
@@ -353,14 +364,49 @@ function MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bo
     gmsh.finalize()
 end
 
-x1 = 0.6610
-y1 = 2.02366
-z1 = 0.0323
-x2 = 0.4855
-y2 = 1.764
-z2 = 0.0023
-x3 = 0.001531
-y3 = 0.005081
+# dimensions of the door
+aluminium_x = 0.6610
+aluminium_y = 2.02366
+aluminium_z = 0.0323
+aluminium = (aluminium_x, aluminium_y, aluminium_z)
+
+glass_x = 0.4855
+glass_y = 1.764
+glass_z = 0.0023
+glass = (glass_x, glass_y, glass_z)
+
+# the width of the rubber between the aluminium and glass on the x axis and y axis
+rubber_x = 0.001531
+rubber_y = 0.005081
+rubber = (rubber_x, rubber_y)
+
+# hinge cylinder (top left)
+# location center of cylinder
+xcyl = aluminium_x-0.04107
+ycyl = aluminium_y-0.091677
+zcyl = 0
+# dimensions cylinder:
+cylheight1 = -0.05  # -, since it pokes out to negative z
+rcyl = 0.015458
+cyl_measurements = (xcyl, ycyl, zcyl, cylheight1, rcyl)
+
+# hinge box (bottom right)
+# dimensions box:
+xbox = 0.05
+ybox = 0.05
+boxheight = -0.05 # -, since it pokes out to negative z
+# location of point of corner closest to (0,0,0):
+xboxl = 0.05
+yboxl = 0.05
+zbox = 0
+box_measurements = (xbox, ybox, boxheight, xboxl, yboxl, zbox)
+
+# location center of hand
+xhand = aluminium_x*0.5
+yhand = aluminium_y*0.5
+zhand = 0.5*aluminium_z - 0.5*glass_z
+rhand = 0.0315  # radius of the circle representing the hand
+hand_measurements = (xhand, yhand, zhand, rhand)
 
 # sizes and location of the following parts should be changed in the function MeshGenerator above
 # booleans for enabling/disabling certain parts of the mesh:
@@ -369,4 +415,4 @@ hinges_bool = true
 # Physical group: Hand, Hand edges
 hand_area_bool = true
 
-MeshGenerator(x1, y1, z1, x2, y2, z2, x3, y3, hinges_bool, hand_area_bool, 0.01)
+MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, 0.01)

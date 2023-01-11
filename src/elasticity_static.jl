@@ -77,7 +77,7 @@ end
 x0 = VectorValue(0.3, 1.3, 0.0145)
 amplitude = 1000
 deviation = 10 
-direction = VectorValue(0,0,1)
+direction = VectorValue(0,0,-1)
 
 f(x) = amplitude*exp(-deviation*norm(x-x0))*direction
 

@@ -78,7 +78,7 @@ end
 x0 = VectorValue(0.3, 1.3, 0.0145)
 amplitude = 1000
 deviation = 10 
-direction = VectorValue(0,0,1)
+direction = VectorValue(0,0,-1)
 
 function normalzed_bell_curve(mean, deviation, x)
     return  ℯ^(-norm(x - mean)/(2 * deviation^2))

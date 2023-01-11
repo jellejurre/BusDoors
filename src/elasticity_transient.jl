@@ -20,7 +20,8 @@ V0 = TestFESpace(model,reffe;conformity=:H1,
     dirichlet_tags=["Hinge ceiling top", "Hinge ceiling bottom", "Area top"],
     dirichlet_masks=[(true, true, true), (true, true, true), (true,true,true)])
 
-g1(x) = VectorValue(0,0,0)
+g1(x, t::Real) = VectorValue(0,0,0)
+g1(t::Real) = x -> g1(x,t)
 
 U = TrialFESpace(V0, [g1,g1,g1])
 

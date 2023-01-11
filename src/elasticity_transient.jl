@@ -8,7 +8,7 @@ using Gridap.Geometry
 using Base
 
 # Setup model
-model = GmshDiscreteModel("geometry_final.msh")
+model = GmshDiscreteModel("geometry.msh")
 labels = get_face_labeling(model)
 dimension = 3
 order = 1
@@ -23,7 +23,7 @@ V0 = TestFESpace(model,reffe;conformity=:H1,
 g1(x, t::Real) = VectorValue(0,0,0)
 g1(t::Real) = x -> g1(x,t)
 
-U = TrialFESpace(V0, [g1,g1,g1])
+U = TransientTrialFESpace(V0, [g1,g1,g1])
 
 # Setup tags
 tags = get_face_tag(labels,dimension)
@@ -80,7 +80,12 @@ amplitude = 1000
 deviation = 10 
 direction = VectorValue(0,0,1)
 
-f(x) = amplitude*exp(-deviation*norm(x-x0))*direction
+function normalzed_bell_curve(mean, deviation, x)
+    return  ℯ^(-norm(x - mean)/(2 * deviation^2))
+end
+
+f(t, x) = normalzed_bell_curve(5, 1, t) * amplitude*exp(-deviation*norm(x-x0))*direction
+f(t) = x -> f(t, x) 
 
 # Set up equations for Transient case
 
@@ -94,7 +99,7 @@ c(ut,v) = ∫(v⊙ut)dΩ
 
 a(u,v) = ∫(ε(v) ⊙ (σ_bimat∘(ε(u),tags)))dΩ 
 
-b(t,v) = ∫(v⋅f)dΩ
+b(t,v) = ∫(v⋅f(t))dΩ
     
 m(t,utt,v) = m(utt,v)
 c(t,ut,v) = c(ut,v)
@@ -130,8 +135,10 @@ T = 10.0
 uₕₜ = solve(ode_solver,op,(u₀,v₀, a₀),t₀,T)
 
 createpvd("transient_elasticity_results") do pvd
+    pvd[0] = createvtk(Ω,"result_transient0.0.vtu",cellfields=["u"=>u₀, "f"=>f(0), 
+    "vonmises"=>σ_vm∘(σ_bimat∘(ε(u₀),tags))])
     for (uₕ,t) in uₕₜ
-      pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, "f"=>f, 
-                  "vonmises"=>σ_vm∘(σ_bimat∘(ε(uₕ),tags))])
+        pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, "f"=>f(t), 
+                "vonmises"=>σ_vm∘(σ_bimat∘(ε(uₕ),tags))])
     end
-  end
+end

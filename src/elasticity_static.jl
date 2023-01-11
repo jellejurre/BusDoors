@@ -8,7 +8,7 @@ using Gridap.Geometry
 using Base
 
 # Setup model
-model = GmshDiscreteModel("geometry_final.msh")
+model = GmshDiscreteModel("geometry.msh")
 labels = get_face_labeling(model)
 dimension = 3
 order = 1

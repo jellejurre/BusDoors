@@ -75,17 +75,18 @@ end
 
 # setup forcing term
 
-x0 = VectorValue(0.3, 1.3, 0.0145)
+# Middle of the door (slightly offset from middle of glass to fix bug)
+x0 = VectorValue((0.6610/2.0), (2.02366/2.0), (0.0323 - (0.0022/2.0)))
+
+# Future result from analytical sandbag test here
 amplitude = 1000
-deviation = 10 
 direction = VectorValue(0,0,-1)
 
-function normalzed_bell_curve(mean, deviation, x)
-    return  ℯ^(-norm(x - mean)/(2 * deviation^2))
-end
+f = DiracDelta(model, x0);
 
-f(t, x) = normalzed_bell_curve(5, 1, t) * amplitude*exp(-deviation*norm(x-x0))*direction
-f(t) = x -> f(t, x) 
+function bell_curve(mean, deviation, x)
+    return 1/(deviation^2 * sqrt(2*π)) * ℯ^(-norm(x - mean)/(2 * deviation^2))
+end
 
 # Set up equations for Transient case
 
@@ -99,8 +100,8 @@ c(ut,v) = ∫(v⊙ut)dΩ
 
 a(u,v) = ∫(ε(v) ⊙ (σ_bimat∘(ε(u),tags)))dΩ 
 
-b(t,v) = ∫(v⋅f(t))dΩ
-    
+b(t,v) = f(bell_curve(5, 1, t) * amplitude * direction⋅v)
+
 m(t,utt,v) = m(utt,v)
 c(t,ut,v) = c(ut,v)
 a(t,u,v) = a(u,v)
@@ -135,10 +136,10 @@ T = 10.0
 uₕₜ = solve(ode_solver,op,(u₀,v₀, a₀),t₀,T)
 
 createpvd("transient_elasticity_results") do pvd
-    pvd[0] = createvtk(Ω,"result_transient0.0.vtu",cellfields=["u"=>u₀, "f"=>f(0), 
+    pvd[0] = createvtk(Ω,"result_transient0.0.vtu",cellfields=["u"=>u₀, 
     "vonmises"=>σ_vm∘(σ_bimat∘(ε(u₀),tags))])
     for (uₕ,t) in uₕₜ
-        pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, "f"=>f(t), 
+        pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, 
                 "vonmises"=>σ_vm∘(σ_bimat∘(ε(uₕ),tags))])
     end
 end

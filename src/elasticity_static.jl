@@ -74,13 +74,14 @@ end
 
 # setup forcing term
 
-x0 = VectorValue(0.3, 1.3, 0.0145)
+# Middle of the door (slightly offset from middle of glass to fix bug)
+x0 = VectorValue((0.6610/2.0), (2.02366/2.0), (0.0323 - (0.0022/2.0)))
+
+# Future result from analytical sandbag test here
 amplitude = 1000
-deviation = 10 
 direction = VectorValue(0,0,-1)
 
-f(x) = amplitude*exp(-deviation*norm(x-x0))*direction
-
+f = DiracDelta(model, x0);
 # Set up static case equations
 
 degree = 2*order
@@ -88,7 +89,7 @@ degree = 2*order
 dΩ = Measure(Ω,degree)
 
 a(u,v) = ∫( ε(v) ⊙ (σ_bimat∘(ε(u),tags)) )*dΩ
-l(v) = ∫(f⋅v) *dΩ
+l(v) = f(amplitude * direction⋅v)
 
 # Perform equation
 op = AffineFEOperator(a,l,U,V0)
@@ -96,7 +97,7 @@ uh = solve(op)
 
 # Write output for static case
 writevtk(Ω,"static_elasticity_result",cellfields=
-  ["force"=>f, "uh"=>uh,
+  ["uh"=>uh,
         "epsi"=>ε(uh),
         "sigma"=>σ_bimat∘(ε(uh),tags), 
         "vonmises"=>σ_vm∘(σ_bimat∘(ε(uh),tags))])

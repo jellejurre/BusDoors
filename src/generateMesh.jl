@@ -428,4 +428,4 @@ hinges_bool = true
 # Physical group: Hand, Hand edges
 hand_area_bool = false
 
-MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, 0.01)
+MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, 0.1)

@@ -1,32 +1,32 @@
+# import libraries
+
 using Gridap
 using GridapGmsh
 using LinearAlgebra
 using Statistics: mean
 using Gridap.Geometry
-using Base
 using Gridap.FESpaces
-using Gridap.ReferenceFEs
-using Gridap.Arrays
-using Gridap.Fields
-using Gridap.CellData
-using FillArrays
-using Test
-using InteractiveUtils
+using Gridap.Algebra
+using Base
 
+# Setup model
 model = GmshDiscreteModel("geometry.msh")
-Th = Triangulation(model)
-order = 1
+labels = get_face_labeling(model)
 dimension = 3
-Qh = CellQuadrature(Th,4*order)
+order = 1
+
+# Setup fields
 reffe = ReferenceFE(lagrangian,VectorValue{3,Float64},order)
 
-V0 = TestFESpace(model,reffe;conformity=:H1,
+test = TestFESpace(model,reffe;conformity=:H1,
     dirichlet_tags=["Hinge ceiling top", "Hinge ceiling bottom", "Area top"],
     dirichlet_masks=[(true, true, true), (true, true, true), (true,true,true)])
-g1(x) = VectorValue(0,0,0)
-U0 = TrialFESpace(V0, [g1,g1,g1])
 
-labels = get_face_labeling(model)
+g1(x) = VectorValue(0,0,0)
+
+trial = TrialFESpace(test, [g1,g1,g1])
+
+# Setup tags
 tags = get_face_tag(labels,dimension)
 const aluminium_tag = get_tag_from_name(labels,"Aluminium")
 const rubber_tag = get_tag_from_name(labels, "Rubber")
@@ -70,20 +70,43 @@ function σ_bimat(ε,tag)
   end
 end
 
-du = get_trial_fe_basis(U0)
-dv = get_fe_basis(V0)
-jac = integrate(ε(dv) ⊙ (σ_bimat∘(ε(du),tags)),Qh)
-sigmak = get_cell_dof_ids(U0)
-assem = SparseMatrixAssembler(U0,V0);
-jac = collect(jac)
-rs = ([jac],[sigmak],[sigmak])
-A = allocate_matrix(assem,rs)
-A = assemble_matrix!(A,assem,rs)
+# von misess stress
+σ_vm(σ) = sqrt( 0.5 * ( (σ[1,1] - σ[2,2] )^2 + (σ[2,2]-σ[3,3])^2 + (σ[3,3]-σ[1,1])^2 ) + 
+    3*(σ[1,2]^2 + σ[2,3]^2 + σ[1,3]^2) )
+
+# setup forcing term
+
+x0 = VectorValue(0.3, 1.3, 0.0145)
+amplitude = 1000
+deviation = 10 
+direction = VectorValue(0,0,-1)
+
+f(x) = amplitude*exp(-deviation*norm(x-x0))*direction
+
+# Set up static case equations
+
+degree = 2*order
+Ω = Triangulation(model)
+dΩ = Measure(Ω,degree)
+
+a(u,v) = ∫( ε(v) ⊙ (σ_bimat∘(ε(u),tags)) )*dΩ
+l(v) = ∫(f⋅v) *dΩ
+
+# Perform equation
+u = get_trial_fe_basis(trial)
+v = get_fe_basis(test)
+assem = SparseMatrixAssembler(trial, test)
+uhd = zero(trial)
+matcontribs = a(u, v)
+veccontribs = l(v)
+data = collect_cell_matrix_and_vector(trial,test,matcontribs,veccontribs,uhd)
+A,b = assemble_matrix_and_vector(assem,data)
+uh = FEFunction(trial, A\b)
 
 for i in findall(!iszero, A)
-    if abs(A[i[1],i[2]]-A[i[2],i[1]])>0.00001 
-        println("Not symmetric")
-    end
+  if abs(A[i[1],i[2]]-A[i[2],i[1]])>0.00001 
+      println("Not symmetric")
+  end
 end
 
 for eig in eigvals(Matrix(A))
@@ -91,3 +114,11 @@ for eig in eigvals(Matrix(A))
         println("Not positive definite")
     end
 end
+
+
+# Write output for static case
+writevtk(Ω,"static_elasticity_result",cellfields=
+  ["force"=>f, "uh"=>uh,
+        "epsi"=>ε(uh),
+        "sigma"=>σ_bimat∘(ε(uh),tags), 
+        "vonmises"=>σ_vm∘(σ_bimat∘(ε(uh),tags))])

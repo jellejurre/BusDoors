@@ -13,17 +13,25 @@ labels = get_face_labeling(model)
 dimension = 3
 order = 1
 
+sandbag_tag = get_tag_from_name(labels, "Hand")
+degree = 2*order
+A = BoundaryTriangulation(model, tags=sandbag_tag)
+dA = Measure(A, degree)
+
+Ω = Triangulation(model)
+dΩ = Measure(Ω,degree)
+
 # Setup fields
 reffe = ReferenceFE(lagrangian,VectorValue{3,Float64},order)
 
 V0 = TestFESpace(model,reffe;conformity=:H1,
-    dirichlet_tags=["Hinge ceiling top", "Hinge ceiling bottom", "Area top"],
-    dirichlet_masks=[(true, true, true), (true, true, true), (true,true,true)])
+    dirichlet_tags=["Hinge top", "Hinge bottom"],
+    dirichlet_masks=[(true, true, true), (true, true, true)])
 
 g1(x, t::Real) = VectorValue(0,0,0)
 g1(t::Real) = x -> g1(x,t)
 
-U = TransientTrialFESpace(V0, [g1,g1,g1])
+U = TransientTrialFESpace(V0, [g1,g1])
 
 # Setup tags
 tags = get_face_tag(labels,dimension)
@@ -73,64 +81,88 @@ end
 σ_vm(σ) = sqrt( 0.5 * ( (σ[1,1] - σ[2,2] )^2 + (σ[2,2]-σ[3,3])^2 + (σ[3,3]-σ[1,1])^2 ) + 
     3*(σ[1,2]^2 + σ[2,3]^2 + σ[1,3]^2) )
 
-# setup forcing term
+    xs = get_cell_coordinates(A)
+x0 = mean(mean(xs))
+list_of_distances = []
+for x in xs
+    push!(list_of_distances, norm(mean(x)-x0))    
+end
+maxdis = maximum(list_of_distances)
 
-x0 = VectorValue(0.3, 1.3, 0.0145)
-amplitude = 1000
-deviation = 10 
+function f(t,x)
+    if t >= 0.1 && t <= 0.2 && norm(x-x0) < maxdis
+        return amplitude/(2*π*σ_bell*σ_bell) * exp(-(1/2)*( norm(x-x0)/σ_bell )^2)*direction
+    else
+        return 0.0*direction
+    end
+end    
+
+# setup forcing term
+ρ_alu = 2.7*10^3
+ρ_rub = 1.2*10^3
+ρ_glass = 1.19*10^3
+
+amplitude = 2000
+σ_bell = 0.1
 direction = VectorValue(0,0,-1)
 
-function normalzed_bell_curve(mean, deviation, x)
-    return  ℯ^(-norm(x - mean)/(2 * deviation^2))
-end
-
-f(t, x) = normalzed_bell_curve(5, 1, t) * amplitude*exp(-deviation*norm(x-x0))*direction
 f(t) = x -> f(t, x) 
 
 # Set up equations for Transient case
 
-degree = 2*order
-Ω = Triangulation(model)
-dΩ = Measure(Ω,degree)
+function density(tags)
+    if tags == glass_tag
+        return ρ_glass
+    elseif tags == aluminium_tag
+        return ρ_alu
+    else 
+        return ρ_rub
+    end
+end
 
-m(utt,v) = ∫(v⊙utt)dΩ
+# function damping(tags)
+#     if tags == glass_tag
+#         return damp_glass
+#     elseif tags == aluminium_tag
+#         return damp_alu
+#     else
+#         return damp_rub
+#     end
+# end
+        
 
-c(ut,v) = ∫(v⊙ut)dΩ
+m(utt,v) = density(tags)*∫(v⊙utt)dΩ
+# c(ut,v) = damping(tags)*∫(v⊙ut)dΩ
+a(u,v) = ∫(ε(v) ⊙ (σ_bimat∘(ε(u),tags)))*dΩ 
 
-a(u,v) = ∫(ε(v) ⊙ (σ_bimat∘(ε(u),tags)))dΩ 
+b(t,v) = ∫(v⋅f(t))*dA
 
-b(t,v) = ∫(v⋅f(t))dΩ
-    
 m(t,utt,v) = m(utt,v)
-c(t,ut,v) = c(ut,v)
+# c(t,ut,v) = c(ut,v)
 a(t,u,v) = a(u,v)
 
-res(t,u,v) = m(∂tt(u),v) + c(∂t(u),v) + a(u,v) - b(t,v)
-jac(t,u,du,v) = a(du,v)
-jac_t(t,u,dut,v) = c(dut,v)
-jac_tt(t,u,dutt,v) = m(dutt,v)
+# res(t,u,v) = m(∂tt(u),v) + c(∂t(u),v) + a(u,v) - b(t,v)
+res(t,u,v) = m(∂tt(u),v) + a(u,v) - b(t,v)
 
-
-op = TransientFEOperator(res, jac, jac_t, jac_tt, U, V0)
-# op = TransientFEOperator(res, U, V0; order=2) # for auto differentiation, without the need to provide jacobians
+op = TransientFEOperator(res, U, V0; order=2) # for auto differentiation, without the need to provide jacobians
 
 linear_solver = LUSolver()
 
-dt = 0.5
+dt = 0.01
 
 # with γ = 0.5 and β = 0.25 the newmark method is unconditionally stable with any dt
 
 γ = 0.5
 β = 0.25
 
-u₀ = interpolate_everywhere(VectorValue(0,0,0),U(0))
+u₀ = interpolate_everywhere(VectorValue(0,0,0), U(0))
 v₀ = interpolate_everywhere(VectorValue(0,0,0), U(0))
 a₀ = interpolate_everywhere(VectorValue(0,0,0), U(0))
 
 ode_solver = Newmark(linear_solver, dt, γ, β)
 
 t₀ = 0.0
-T = 10.0
+T = 0.5
 
 uₕₜ = solve(ode_solver,op,(u₀,v₀, a₀),t₀,T)
 
@@ -141,4 +173,4 @@ createpvd("transient_elasticity_results") do pvd
         pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, "f"=>f(t), 
                 "vonmises"=>σ_vm∘(σ_bimat∘(ε(uₕ),tags))])
     end
-end
+en

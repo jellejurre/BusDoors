@@ -418,7 +418,7 @@ box_measurements = (xbox, ybox, boxheight, xboxl, yboxl, zbox)
 xhand = aluminium_x*0.5
 yhand = aluminium_y*0.5
 zhand = aluminium_z - glass_z
-rhand = 0.0315  # radius of the circle representing the hand
+rhand = 0.1  # radius of the circle representing the hand
 hand_measurements = (xhand, yhand, zhand, rhand)
 
 # sizes and location of the following parts should be changed in the function MeshGenerator above
@@ -426,6 +426,6 @@ hand_measurements = (xhand, yhand, zhand, rhand)
 # Physical group: Hinge top/bottom, Hinge ceiling top/bottom, Hinge sides top/bottom, Hinge edges
 hinges_bool = true
 # Physical group: Hand, Hand edges
-hand_area_bool = false
+hand_area_bool = true
 
 MeshGenerator(aluminium, glass, rubber, hinges_bool, hand_area_bool, cyl_measurements, box_measurements, hand_measurements, 0.01)

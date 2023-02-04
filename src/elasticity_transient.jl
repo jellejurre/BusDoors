@@ -81,6 +81,11 @@ end
 σ_vm(σ) = sqrt( 0.5 * ( (σ[1,1] - σ[2,2] )^2 + (σ[2,2]-σ[3,3])^2 + (σ[3,3]-σ[1,1])^2 ) + 
     3*(σ[1,2]^2 + σ[2,3]^2 + σ[1,3]^2) )
 
+# below is to get the max distance between point x0 and the end of the area A
+# alternatively, if you know exactly x0 (without doing mean of mean as we did)
+# and you have the radius of your area (as we have defined it in `generateMesh.jl`)
+# you could just use directly in `f(t,x)` the if `norm(x-x0)<R`
+
 xs = get_cell_coordinates(A)
 x0 = mean(mean(xs))
 list_of_distances = []
@@ -173,4 +178,4 @@ createpvd("transient_elasticity_results") do pvd
         pvd[t] = createvtk(Ω,"result_transient$t"*".vtu",cellfields=["u"=>uₕ, "f"=>f(t), 
                 "vonmises"=>σ_vm∘(σ_bimat∘(ε(uₕ),tags))])
     end
-en
+end

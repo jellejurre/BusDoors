@@ -81,7 +81,7 @@ end
 σ_vm(σ) = sqrt( 0.5 * ( (σ[1,1] - σ[2,2] )^2 + (σ[2,2]-σ[3,3])^2 + (σ[3,3]-σ[1,1])^2 ) + 
     3*(σ[1,2]^2 + σ[2,3]^2 + σ[1,3]^2) )
 
-    xs = get_cell_coordinates(A)
+xs = get_cell_coordinates(A)
 x0 = mean(mean(xs))
 list_of_distances = []
 for x in xs

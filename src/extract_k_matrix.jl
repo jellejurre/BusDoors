@@ -1,3 +1,9 @@
+# IMPORTANT NOTE:
+# due to memory limitations when extracting matrix K (in the code == A)
+# it's better to reduce the `meshSize` variable of `generateMesh.jl` to 0.1
+# in this code we only check if it is Posite definite and symmetric
+# but one could also extract it into a `.csv` file 
+
 # import libraries
 
 using Gridap
@@ -15,16 +21,21 @@ labels = get_face_labeling(model)
 dimension = 3
 order = 1
 
+sandbag_tag = get_tag_from_name(labels, "Hand")
+degree = 2*order
+Γ = BoundaryTriangulation(model, tags=sandbag_tag)
+dΓ = Measure(Γ, degree)
+
 # Setup fields
 reffe = ReferenceFE(lagrangian,VectorValue{3,Float64},order)
 
 test = TestFESpace(model,reffe;conformity=:H1,
-    dirichlet_tags=["Hinge ceiling top", "Hinge ceiling bottom", "Area top"],
-    dirichlet_masks=[(true, true, true), (true, true, true), (true,true,true)])
+    dirichlet_tags=["Hinge top", "Hinge bottom"],
+    dirichlet_masks=[(true, true, true), (true, true, true)])
 
 g1(x) = VectorValue(0,0,0)
 
-trial = TrialFESpace(test, [g1,g1,g1])
+trial = TrialFESpace(test, [g1,g1])
 
 # Setup tags
 tags = get_face_tag(labels,dimension)
@@ -76,12 +87,29 @@ end
 
 # setup forcing term
 
-x0 = VectorValue(0.3, 1.3, 0.0145)
-amplitude = 1000
-deviation = 10 
-direction = VectorValue(0,0,-1)
+xs = get_cell_coordinates(Γ)
+x0 = mean(mean(xs))
+list_of_distances = []
+for x in xs
+    push!(list_of_distances, norm(mean(x)-x0))
+end
 
-f(x) = amplitude*exp(-deviation*norm(x-x0))*direction
+maxdis = maximum(list_of_distances)
+
+
+# Setup forcing term
+function f(x)
+    if norm(x-x0) < maxdis
+        return amplitude/(2*π*σ_bell*σ_bell) * exp(-(1/2)*( norm(x-x0)/σ_bell )^2)*direction
+    else
+        return 0.0*direction
+    end
+end       
+
+amplitude = 2000
+σ_bell = 0.1
+
+direction = VectorValue(0,0,-1)
 
 # Set up static case equations
 
@@ -90,7 +118,7 @@ degree = 2*order
 dΩ = Measure(Ω,degree)
 
 a(u,v) = ∫( ε(v) ⊙ (σ_bimat∘(ε(u),tags)) )*dΩ
-l(v) = ∫(f⋅v) *dΩ
+l(v) = ∫(f⋅v) *dΓ
 
 # Perform equation
 u = get_trial_fe_basis(trial)
@@ -101,6 +129,7 @@ matcontribs = a(u, v)
 veccontribs = l(v)
 data = collect_cell_matrix_and_vector(trial,test,matcontribs,veccontribs,uhd)
 A,b = assemble_matrix_and_vector(assem,data)
+println("Size of matrix A is => $(size(A))")
 uh = FEFunction(trial, A\b)
 
 for i in findall(!iszero, A)
